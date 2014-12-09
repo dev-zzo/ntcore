@@ -205,6 +205,8 @@ typedef struct _PROCESS_BASIC_INFORMATION {
     ULONG_PTR InheritedFromUniqueProcessId;
 } PROCESS_BASIC_INFORMATION,*PPROCESS_BASIC_INFORMATION;
 
+#define NtCurrentProcess() ((HANDLE)-1)
+
 NTSYSAPI NTSTATUS NTAPI NtQueryInformationProcess(
     HANDLE ProcessHandle,
     PROCESS_INFORMATION_CLASS ProcessInformationClass,
@@ -373,6 +375,8 @@ typedef struct _THREAD_BASIC_INFORMATION {
     KPRIORITY Priority;
     KPRIORITY BasePriority;
 } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
+
+#define  NtCurrentThread() ((HANDLE)-2)
 
 NTSYSAPI NTSTATUS NTAPI NtCreateThread(
     PHANDLE ThreadHandle,
