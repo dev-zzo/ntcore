@@ -336,15 +336,13 @@ typedef struct _TEB_NT513 {
     BOOLEAN BooleanSpare[3];
 } TEB_NT513, *PTEB_NT513;
 
-typedef struct _INITIAL_TEB {
-    struct {
-        PVOID OldStackBase;
-        PVOID OldStackLimit;
-    } OldInitialTeb;
-    PVOID StackBase;
-    PVOID StackLimit;
-    PVOID StackAllocationBase;
-} INITIAL_TEB, *PINITIAL_TEB;
+typedef struct _USER_STACK {
+    PVOID FixedStackBase;
+    PVOID FixedStackLimit;
+    PVOID ExpandableStackBase;
+    PVOID ExpandableStackLimit;
+    PVOID ExpandableStackBottom;
+} USER_STACK, *PUSER_STACK;
 
 typedef enum _THREAD_INFORMATION_CLASS {          // num/query/set
     ThreadBasicInformation,                       //  0/Y/N
@@ -383,7 +381,7 @@ NTSYSAPI NTSTATUS NTAPI NtCreateThread(
     HANDLE ProcessHandle,
     PCLIENT_ID ClientId,
     PCONTEXT ThreadContext,
-    PINITIAL_TEB InitialTeb,
+    PUSER_STACK UserStack,
     BOOLEAN CreateSuspended);
 
 NTSYSAPI NTSTATUS NTAPI NtQueryInformationThread(
@@ -409,6 +407,9 @@ NTSYSAPI NTSTATUS NTAPI NtResumeThread(
     HANDLE ThreadHandle,
     PULONG SuspendCount);
 
+NTSYSAPI NTSTATUS NTAPI NtTerminateThread(
+    HANDLE ThreadHandle,
+    NTSTATUS ExitStatus);
 
 /*
  * VIRTUAL MEMORY
