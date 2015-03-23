@@ -849,4 +849,14 @@ NTSYSAPI NTSTATUS NTAPI NtReadRequestData(
     ULONG BufferSize,
     PULONG NumberOfBytesRead);
 
+
+/*
+ * C runtime support
+ */
+
+int vsprintf(
+   char *buffer,
+   const char *format,
+   va_list argptr);
+
 #endif // __NTDLL_H_INCLUDED
