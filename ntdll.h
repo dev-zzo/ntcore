@@ -10,7 +10,8 @@
 #endif
 
 #ifndef STATUS_ALERTED
-#define STATUS_ALERTED                   ((NTSTATUS)0x00000101L)
+#define STATUS_ALERTED                      ((NTSTATUS)0x00000101L)
+#define STATUS_INFO_LENGTH_MISMATCH         ((NTSTATUS)0xC0000004L)
 #endif
 
 typedef LONG KPRIORITY;
@@ -56,9 +57,336 @@ typedef struct _IO_STATUS_BLOCK {
     ULONG_PTR Information;
 } IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
 
+typedef struct _VM_COUNTERS {
+#ifdef _WIN64
+// the following was inferred by painful reverse engineering
+	SIZE_T		   PeakVirtualSize;	// not actually
+    SIZE_T         PageFaultCount;
+    SIZE_T         PeakWorkingSetSize;
+    SIZE_T         WorkingSetSize;
+    SIZE_T         QuotaPeakPagedPoolUsage;
+    SIZE_T         QuotaPagedPoolUsage;
+    SIZE_T         QuotaPeakNonPagedPoolUsage;
+    SIZE_T         QuotaNonPagedPoolUsage;
+    SIZE_T         PagefileUsage;
+    SIZE_T         PeakPagefileUsage;
+    SIZE_T         VirtualSize;		// not actually
+#else
+    SIZE_T         PeakVirtualSize;
+    SIZE_T         VirtualSize;
+    ULONG          PageFaultCount;
+    SIZE_T         PeakWorkingSetSize;
+    SIZE_T         WorkingSetSize;
+    SIZE_T         QuotaPeakPagedPoolUsage;
+    SIZE_T         QuotaPagedPoolUsage;
+    SIZE_T         QuotaPeakNonPagedPoolUsage;
+    SIZE_T         QuotaNonPagedPoolUsage;
+    SIZE_T         PagefileUsage;
+    SIZE_T         PeakPagefileUsage;
+#endif
+} VM_COUNTERS;
+
+#if 0
+typedef struct _IO_COUNTERS {
+    ULONGLONG ReadOperationCount;
+    ULONGLONG WriteOperationCount;
+    ULONGLONG OtherOperationCount;
+    ULONGLONG ReadTransferCount;
+    ULONGLONG WriteTransferCount;
+    ULONGLONG OtherTransferCount;
+} IO_COUNTERS, *PIO_COUNTERS;
+#endif
+
 
 NTSYSAPI NTSTATUS NTAPI NtClose(
     HANDLE Handle);
+
+
+/*
+ * SYSTEM
+ */
+
+/* http://www.exploit-monday.com/2013/06/undocumented-ntquerysysteminformation.html */
+typedef enum _SYSTEM_INFORMATION_CLASS
+{
+    SystemBasicInformation=0x0000,
+    SystemProcessorInformation=0x0001,
+    SystemPerformanceInformation=0x0002,
+    SystemTimeOfDayInformation=0x0003,
+    SystemPathInformation=0x0004,
+    SystemProcessInformation=0x0005,
+    SystemCallCountInformation=0x0006,
+    SystemDeviceInformation=0x0007,
+    SystemProcessorPerformanceInformation=0x0008,
+    SystemFlagsInformation=0x0009,
+    SystemCallTimeInformation=0x000A,
+    SystemModuleInformation=0x000B,
+    SystemLocksInformation=0x000C,
+    SystemStackTraceInformation=0x000D,
+    SystemPagedPoolInformation=0x000E,
+    SystemNonPagedPoolInformation=0x000F,
+    SystemHandleInformation=0x0010,
+    SystemObjectInformation=0x0011,
+    SystemPageFileInformation=0x0012,
+    SystemVdmInstemulInformation=0x0013,
+    SystemVdmBopInformation=0x0014,
+    SystemFileCacheInformation=0x0015,
+    SystemPoolTagInformation=0x0016,
+    SystemInterruptInformation=0x0017,
+    SystemDpcBehaviorInformation=0x0018,
+    SystemFullMemoryInformation=0x0019,
+    SystemLoadGdiDriverInformation=0x001A,
+    SystemUnloadGdiDriverInformation=0x001B,
+    SystemTimeAdjustmentInformation=0x001C,
+    SystemSummaryMemoryInformation=0x001D,
+    SystemMirrorMemoryInformation=0x001E,
+    SystemPerformanceTraceInformation=0x001F,
+    SystemCrashDumpInformation=0x0020,
+    SystemExceptionInformation=0x0021,
+    SystemCrashDumpStateInformation=0x0022,
+    SystemKernelDebuggerInformation=0x0023,
+    SystemContextSwitchInformation=0x0024,
+    SystemRegistryQuotaInformation=0x0025,
+    SystemExtendServiceTableInformation=0x0026,
+    SystemPrioritySeperation=0x0027,
+    SystemVerifierAddDriverInformation=0x0028,
+    SystemVerifierRemoveDriverInformation=0x0029,
+    SystemProcessorIdleInformation=0x002A,
+    SystemLegacyDriverInformation=0x002B,
+    SystemCurrentTimeZoneInformation=0x002C,
+    SystemLookasideInformation=0x002D,
+    SystemTimeSlipNotification=0x002E,
+    SystemSessionCreate=0x002F,
+    SystemSessionDetach=0x0030,
+    SystemSessionInformation=0x0031,
+    SystemRangeStartInformation=0x0032,
+    SystemVerifierInformation=0x0033,
+    SystemVerifierThunkExtend=0x0034,
+    SystemSessionProcessInformation=0x0035,
+    SystemLoadGdiDriverInSystemSpace=0x0036,
+    SystemNumaProcessorMap=0x0037,
+    SystemPrefetcherInformation=0x0038,
+    SystemExtendedProcessInformation=0x0039,
+    SystemRecommendedSharedDataAlignment=0x003A,
+    SystemComPlusPackage=0x003B,
+    SystemNumaAvailableMemory=0x003C,
+    SystemProcessorPowerInformation=0x003D,
+    SystemEmulationBasicInformation=0x003E,
+    SystemEmulationProcessorInformation=0x003F,
+    SystemExtendedHandleInformation=0x0040,
+    SystemLostDelayedWriteInformation=0x0041,
+    SystemBigPoolInformation=0x0042,
+    SystemSessionPoolTagInformation=0x0043,
+    SystemSessionMappedViewInformation=0x0044,
+    SystemHotpatchInformation=0x0045,
+    SystemObjectSecurityMode=0x0046,
+    SystemWatchdogTimerHandler=0x0047,
+    SystemWatchdogTimerInformation=0x0048,
+    SystemLogicalProcessorInformation=0x0049,
+    SystemWow64SharedInformationObsolete=0x004A,
+    SystemRegisterFirmwareTableInformationHandler=0x004B,
+    SystemFirmwareTableInformation=0x004C,
+    SystemModuleInformationEx=0x004D,
+    SystemVerifierTriageInformation=0x004E,
+    SystemSuperfetchInformation=0x004F,
+    SystemMemoryListInformation=0x0050,
+    SystemFileCacheInformationEx=0x0051,
+    SystemThreadPriorityClientIdInformation=0x0052,
+    SystemProcessorIdleCycleTimeInformation=0x0053,
+    SystemVerifierCancellationInformation=0x0054,
+    SystemProcessorPowerInformationEx=0x0055,
+    SystemRefTraceInformation=0x0056,
+    SystemSpecialPoolInformation=0x0057,
+    SystemProcessIdInformation=0x0058,
+    SystemErrorPortInformation=0x0059,
+    SystemBootEnvironmentInformation=0x005A,
+    SystemHypervisorInformation=0x005B,
+    SystemVerifierInformationEx=0x005C,
+    SystemTimeZoneInformation=0x005D,
+    SystemImageFileExecutionOptionsInformation=0x005E,
+    SystemCoverageInformation=0x005F,
+    SystemPrefetchPatchInformation=0x0060,
+    SystemVerifierFaultsInformation=0x0061,
+    SystemSystemPartitionInformation=0x0062,
+    SystemSystemDiskInformation=0x0063,
+    SystemProcessorPerformanceDistribution=0x0064,
+    SystemNumaProximityNodeInformation=0x0065,
+    SystemDynamicTimeZoneInformation=0x0066,
+    SystemCodeIntegrityInformation=0x0067,
+    SystemProcessorMicrocodeUpdateInformation=0x0068,
+    SystemProcessorBrandString=0x0069,
+    SystemVirtualAddressInformation=0x006A,
+    SystemLogicalProcessorAndGroupInformation=0x006B,
+    SystemProcessorCycleTimeInformation=0x006C,
+    SystemStoreInformation=0x006D,
+    SystemRegistryAppendString=0x006E,
+    SystemAitSamplingValue=0x006F,
+    SystemVhdBootInformation=0x0070,
+    SystemCpuQuotaInformation=0x0071,
+    SystemNativeBasicInformation=0x0072,
+    SystemErrorPortTimeouts=0x0073,
+    SystemLowPriorityIoInformation=0x0074,
+    SystemBootEntropyInformation=0x0075,
+    SystemVerifierCountersInformation=0x0076,
+    SystemPagedPoolInformationEx=0x0077,
+    SystemSystemPtesInformationEx=0x0078,
+    SystemNodeDistanceInformation=0x0079,
+    SystemAcpiAuditInformation=0x007A,
+    SystemBasicPerformanceInformation=0x007B,
+    SystemQueryPerformanceCounterInformation=0x007C,
+    SystemSessionBigPoolInformation=0x007D,
+    SystemBootGraphicsInformation=0x007E,
+    SystemScrubPhysicalMemoryInformation=0x007F,
+    SystemBadPageInformation=0x0080,
+    SystemProcessorProfileControlArea=0x0081,
+    SystemCombinePhysicalMemoryInformation=0x0082,
+    SystemEntropyInterruptTimingInformation=0x0083,
+    SystemConsoleInformation=0x0084,
+    SystemPlatformBinaryInformation=0x0085,
+    SystemThrottleNotificationInformation=0x0086,
+    SystemHypervisorProcessorCountInformation=0x0087,
+    SystemDeviceDataInformation=0x0088,
+    SystemDeviceDataEnumerationInformation=0x0089,
+    SystemMemoryTopologyInformation=0x008A,
+    SystemMemoryChannelInformation=0x008B,
+    SystemBootLogoInformation=0x008C,
+    SystemProcessorPerformanceInformationEx=0x008D,
+    SystemSpare0=0x008E,
+    SystemSecureBootPolicyInformation=0x008F,
+    SystemPageFileInformationEx=0x0090,
+    SystemSecureBootInformation=0x0091,
+    SystemEntropyInterruptTimingRawInformation=0x0092,
+    SystemPortableWorkspaceEfiLauncherInformation=0x0093,
+    SystemFullProcessInformation=0x0094,
+    MaxSystemInfoClass=0x0095
+} SYSTEM_INFORMATION_CLASS, *PSYSTEM_INFORMATION_CLASS;
+
+typedef struct _SYSTEM_BASIC_INFORMATION
+{
+    ULONG Reserved;
+    ULONG TimerResolution;
+    ULONG PageSize;
+    ULONG NumberOfPhysicalPages;
+    ULONG LowestPhysicalPageNumber;
+    ULONG HighestPhysicalPageNumber;
+    ULONG AllocationGranularity;
+    ULONG MinimumUserModeAddress;
+    ULONG MaximumUserModeAddress;
+    ULONG ActiveProcessorsAffinityMask;
+    UCHAR NumberOfProcessors;
+} SYSTEM_BASIC_INFORMATION;
+
+typedef struct _SYSTEM_PROCESS_INFORMATION
+{
+    ULONG NextEntryOffset;
+    ULONG NumberOfThreads;
+    LARGE_INTEGER WorkingSetPrivateSize;
+    ULONG HardFaultCount;
+    ULONG NumberOfThreadsHighWatermark;
+    ULONGLONG CycleTime;
+    LARGE_INTEGER CreateTime;
+    LARGE_INTEGER UserTime;
+    LARGE_INTEGER KernelTime;
+    UNICODE_STRING ImageName;
+    KPRIORITY BasePriority;
+    ULONG UniqueProcessId;
+    ULONG InheritedFromUniqueProcessId;
+    ULONG HandleCount;
+    ULONG SessionId;
+    ULONG UniqueProcessKey;
+    VM_COUNTERS VmCounters;
+    IO_COUNTERS IoCounters;
+    /* Array of SYSTEM_THREAD follows */
+} SYSTEM_PROCESS_INFORMATION, *PSYSTEM_PROCESS_INFORMATION;
+
+struct _SYSTEM_PROCESSOR_INFORMATION
+{
+    USHORT ProcessorArchitecture;
+    USHORT ProcessorLevel;
+    USHORT ProcessorRevision;
+    USHORT MaximumProcessors;
+    ULONG ProcessorFeatureBits;
+};
+
+struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
+{
+    LARGE_INTEGER IdleTime;
+    LARGE_INTEGER KernelTime;
+    LARGE_INTEGER UserTime;
+    LARGE_INTEGER DpcTime;
+    LARGE_INTEGER InterruptTime;
+    ULONG InterruptCount;
+};
+
+typedef enum _SYSTEM_GLOBAL_FLAGS
+{
+    FLG_DISABLE_DBGPRINT=0x08000000,
+    FLG_KERNEL_STACK_TRACE_DB=0x00002000,
+    FLG_USER_STACK_TRACE_DB=0x00001000,
+    FLG_DEBUG_INITIAL_COMMAND=0x00000004,
+    FLG_DEBUG_INITIAL_COMMAND_EX=0x04000000,
+    FLG_HEAP_DISABLE_COALESCING=0x00200000,
+    FLG_DISABLE_PAGE_KERNEL_STACKS=0x00080000,
+    FLG_DISABLE_PROTDLLS=0x80000000,
+    FLG_DISABLE_STACK_EXTENSION=0x00010000,
+    FLG_CRITSEC_EVENT_CREATION=0x10000000,
+    FLG_APPLICATION_VERIFIER=0x00000100,
+    FLG_ENABLE_HANDLE_EXCEPTIONS=0x40000000,
+    FLG_ENABLE_CLOSE_EXCEPTIONS=0x00400000,
+    FLG_ENABLE_CSRDEBUG=0x00020000,
+    FLG_ENABLE_EXCEPTION_LOGGING=0x00800000,
+    FLG_HEAP_ENABLE_FREE_CHECK=0x00000020,
+    FLG_HEAP_VALIDATE_PARAMETERS=0x00000040,
+    FLG_HEAP_ENABLE_TAGGING=0x00000800,
+    FLG_HEAP_ENABLE_TAG_BY_DLL=0x00008000,
+    FLG_HEAP_ENABLE_TAIL_CHECK=0x00000010,
+    FLG_HEAP_VALIDATE_ALL=0x00000080,
+    FLG_ENABLE_KDEBUG_SYMBOL_LOAD=0x00040000,
+    FLG_ENABLE_HANDLE_TYPE_TAGGING=0x01000000,
+    FLG_HEAP_PAGE_ALLOCS=0x02000000,
+    FLG_POOL_ENABLE_TAGGING=0x00000400,
+    FLG_ENABLE_SYSTEM_CRIT_BREAKS=0x00100000,
+    FLG_MAINTAIN_OBJECT_TYPELIST=0x00004000,
+    FLG_MONITOR_SILENT_PROCESS_EXIT=0x00000200,
+    FLG_SHOW_LDR_SNAPS=0x00000002,
+    FLG_STOP_ON_EXCEPTION=0x00000001,
+    FLG_STOP_ON_HUNG_GUI=0x00000008
+} SYSTEM_GLOBAL_FLAGS;
+
+struct _SYSTEM_FLAGS_INFORMATION
+{
+    SYSTEM_GLOBAL_FLAGS Flags;
+};
+
+typedef enum _SYSTEM_HANDLE_FLAGS
+{
+    PROTECT_FROM_CLOSE=1,
+    INHERIT=2
+} SYSTEM_HANDLE_FLAGS;
+
+typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO
+{
+    USHORT UniqueProcessId;
+    USHORT CreatorBackTraceIndex;
+    UCHAR ObjectTypeIndex;
+    SYSTEM_HANDLE_FLAGS HandleAttributes;
+    USHORT HandleValue;
+    PVOID Object;
+    ULONG GrantedAccess;
+} SYSTEM_HANDLE_TABLE_ENTRY_INFO;
+
+struct _SYSTEM_HANDLE_INFORMATION
+{
+    ULONG NumberOfHandles;
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
+};
+
+NTSYSAPI NTSTATUS NTAPI NtQuerySystemInformation(
+    SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    PVOID SystemInformation,
+    ULONG SystemInformationLength,
+    PULONG ReturnLength
+);
 
 
 /*
