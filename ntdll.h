@@ -599,6 +599,18 @@ NTSYSAPI NTSTATUS NTAPI NtQueryInformationFile(
     ULONG Length,
     FILE_INFORMATION_CLASS FileInformationClass);
 
+NTSYSAPI NTSTATUS NTAPI NtDeviceIoControlFile(
+    HANDLE DeviceHandle,
+    HANDLE Event,
+    PIO_APC_ROUTINE UserApcRoutine,
+    PVOID UserApcContext,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    ULONG IoControlCode,
+    PVOID InputBuffer,
+    ULONG InputBufferLength,
+    PVOID OutputBuffer,
+    ULONG OutputBufferLength);
+
 
 /*
  * DEBUGGER
