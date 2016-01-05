@@ -122,6 +122,7 @@ typedef VOID (NTAPI *PKRUNDOWN_ROUTINE)(PKAPC Apc);
  * Object Manager
  */
 
+ /* NOTE: Verify enumeration values. */
 typedef enum _OBJECT_INFORMATION_CLASS {
     ObjectBasicInformation,
     ObjectNameInformation,
@@ -460,7 +461,7 @@ typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO {
     USHORT UniqueProcessId;
     USHORT CreatorBackTraceIndex;
     UCHAR ObjectTypeIndex;
-    SYSTEM_HANDLE_FLAGS HandleAttributes;
+    UCHAR HandleAttributes;
     USHORT HandleValue;
     PVOID Object;
     ULONG GrantedAccess;
