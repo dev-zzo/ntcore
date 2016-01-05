@@ -49,6 +49,7 @@ typedef struct _OBJECT_ATTRIBUTES {
     }
 #endif
 
+
 typedef struct _IO_STATUS_BLOCK {
     union {
         NTSTATUS Status;
@@ -56,6 +57,19 @@ typedef struct _IO_STATUS_BLOCK {
     };
     ULONG_PTR Information;
 } IO_STATUS_BLOCK, *PIO_STATUS_BLOCK;
+
+typedef VOID (NTAPI *PIO_APC_ROUTINE)(PVOID ApcContext, PIO_STATUS_BLOCK IoStatusBlock, ULONG Reserved);
+
+#if 0
+typedef struct _IO_COUNTERS {
+    ULONGLONG ReadOperationCount;
+    ULONGLONG WriteOperationCount;
+    ULONGLONG OtherOperationCount;
+    ULONGLONG ReadTransferCount;
+    ULONGLONG WriteTransferCount;
+    ULONGLONG OtherTransferCount;
+} IO_COUNTERS, *PIO_COUNTERS;
+#endif
 
 typedef struct _VM_COUNTERS {
 #ifdef _WIN64
@@ -85,17 +99,6 @@ typedef struct _VM_COUNTERS {
     SIZE_T         PeakPagefileUsage;
 #endif
 } VM_COUNTERS;
-
-#if 0
-typedef struct _IO_COUNTERS {
-    ULONGLONG ReadOperationCount;
-    ULONGLONG WriteOperationCount;
-    ULONGLONG OtherOperationCount;
-    ULONGLONG ReadTransferCount;
-    ULONGLONG WriteTransferCount;
-    ULONGLONG OtherTransferCount;
-} IO_COUNTERS, *PIO_COUNTERS;
-#endif
 
 typedef struct _KAPC KAPC;
 typedef KAPC *PKAPC;
