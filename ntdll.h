@@ -97,9 +97,103 @@ typedef struct _IO_COUNTERS {
 } IO_COUNTERS, *PIO_COUNTERS;
 #endif
 
+typedef struct _KAPC KAPC;
+typedef KAPC *PKAPC;
+
+typedef VOID (NTAPI *PKNORMAL_ROUTINE)(
+    PVOID NormalContext,
+    PVOID SystemArgument1,
+    PVOID SystemArgument2);
+
+typedef VOID (NTAPI *PKKERNEL_ROUTINE)(
+    PKAPC Apc,
+    PKNORMAL_ROUTINE *NormalRoutine,
+    PVOID *NormalContext,
+    PVOID *SystemArgument1,
+    PVOID *SystemArgument2);
+
+typedef VOID (NTAPI *PKRUNDOWN_ROUTINE)(PKAPC Apc);
+
+
+/*
+ * Object Manager
+ */
+
+typedef enum _OBJECT_INFORMATION_CLASS {
+    ObjectBasicInformation,
+    ObjectNameInformation,
+    ObjectTypeInformation,
+    ObjectAllInformation,
+    ObjectDataInformation,
+} OBJECT_INFORMATION_CLASS;
+
+typedef struct _OBJECT_BASIC_INFORMATION {
+    ULONG Attributes;
+    ACCESS_MASK DesiredAccess;
+    ULONG HandleCount;
+    ULONG ReferenceCount;
+    ULONG PagedPoolUsage;
+    ULONG NonPagedPoolUsage;
+    ULONG Reserved[3];
+    ULONG NameInformationLength;
+    ULONG TypeInformationLength;
+    ULONG SecurityDescriptorLength;
+    LARGE_INTEGER CreationTime;
+} OBJECT_BASIC_INFORMATION, *POBJECT_BASIC_INFORMATION;
+
+typedef struct _OBJECT_NAME_INFORMATION {
+    UNICODE_STRING Name;
+    WCHAR NameBuffer[1];
+} OBJECT_NAME_INFORMATION, *POBJECT_NAME_INFORMATION;
+
+typedef struct _OBJECT_TYPE_INFORMATION {
+    UNICODE_STRING TypeName;
+    ULONG TotalNumberOfObjects;
+    ULONG TotalNumberOfHandles;
+    ULONG TotalPagedPoolUsage;
+    ULONG TotalNonPagedPoolUsage;
+    ULONG TotalNamePoolUsage;
+    ULONG TotalHandleTableUsage;
+    ULONG HighWaterNumberOfObjects;
+    ULONG HighWaterNumberOfHandles;
+    ULONG HighWaterPagedPoolUsage;
+    ULONG HighWaterNonPagedPoolUsage;
+    ULONG HighWaterNamePoolUsage;
+    ULONG HighWaterHandleTableUsage;
+    ULONG InvalidAttributes;
+    GENERIC_MAPPING GenericMapping;
+    ULONG ValidAccessMask;
+    BOOLEAN SecurityRequired;
+    BOOLEAN MaintainHandleCount;
+    ULONG PoolType;
+    ULONG DefaultPagedPoolCharge;
+    ULONG DefaultNonPagedPoolCharge;
+} OBJECT_TYPE_INFORMATION, *POBJECT_TYPE_INFORMATION;
+
+NTSYSAPI NTSTATUS NTAPI NtDuplicateObject(
+    HANDLE SourceProcessHandle,
+    PHANDLE SourceHandle,
+    HANDLE TargetProcessHandle,
+    PHANDLE TargetHandle,
+    ACCESS_MASK DesiredAccess,
+    BOOLEAN InheritHandle,
+    ULONG Options);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryObject(
+    HANDLE ObjectHandle,
+    OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    PVOID ObjectInformation,
+    ULONG ObjectInformationLength,
+    PULONG ReturnLength);
+
+NTSYSAPI NTSTATUS NTAPI NtSetInformationObject(
+    HANDLE ObjectHandle,
+    OBJECT_INFORMATION_CLASS ObjectInformationClass,
+    PVOID ObjectInformation,
+    ULONG ObjectInformationLength);
 
 NTSYSAPI NTSTATUS NTAPI NtClose(
-    HANDLE Handle);
+    HANDLE ObjectHandle);
 
 
 /*
@@ -299,8 +393,7 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     /* Array of SYSTEM_THREAD follows */
 } SYSTEM_PROCESS_INFORMATION, *PSYSTEM_PROCESS_INFORMATION;
 
-struct _SYSTEM_PROCESSOR_INFORMATION
-{
+struct _SYSTEM_PROCESSOR_INFORMATION {
     USHORT ProcessorArchitecture;
     USHORT ProcessorLevel;
     USHORT ProcessorRevision;
@@ -308,8 +401,7 @@ struct _SYSTEM_PROCESSOR_INFORMATION
     ULONG ProcessorFeatureBits;
 };
 
-struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
-{
+struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION {
     LARGE_INTEGER IdleTime;
     LARGE_INTEGER KernelTime;
     LARGE_INTEGER UserTime;
@@ -318,8 +410,7 @@ struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION
     ULONG InterruptCount;
 };
 
-typedef enum _SYSTEM_GLOBAL_FLAGS
-{
+typedef enum _SYSTEM_GLOBAL_FLAGS {
     FLG_STOP_ON_EXCEPTION           = 0x00000001,
     FLG_SHOW_LDR_SNAPS              = 0x00000002,
     FLG_DEBUG_INITIAL_COMMAND       = 0x00000004,
@@ -353,19 +444,16 @@ typedef enum _SYSTEM_GLOBAL_FLAGS
     FLG_DISABLE_PROTDLLS            = 0x80000000,
 } SYSTEM_GLOBAL_FLAGS;
 
-struct _SYSTEM_FLAGS_INFORMATION
-{
+typedef struct _SYSTEM_FLAGS_INFORMATION {
     SYSTEM_GLOBAL_FLAGS Flags;
-};
+} SYSTEM_FLAGS_INFORMATION, *PSYSTEM_FLAGS_INFORMATION;
 
-typedef enum _SYSTEM_HANDLE_FLAGS
-{
+typedef enum _SYSTEM_HANDLE_FLAGS {
     PROTECT_FROM_CLOSE=1,
     INHERIT=2
 } SYSTEM_HANDLE_FLAGS;
 
-typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO
-{
+typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO {
     USHORT UniqueProcessId;
     USHORT CreatorBackTraceIndex;
     UCHAR ObjectTypeIndex;
@@ -375,19 +463,22 @@ typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO
     ULONG GrantedAccess;
 } SYSTEM_HANDLE_TABLE_ENTRY_INFO;
 
-struct _SYSTEM_HANDLE_INFORMATION
-{
+struct _SYSTEM_HANDLE_INFORMATION {
     ULONG NumberOfHandles;
     SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
-};
+} SYSTEM_HANDLE_INFORMATION, *PSYSTEM_HANDLE_INFORMATION;
 
 
 NTSYSAPI NTSTATUS NTAPI NtQuerySystemInformation(
     SYSTEM_INFORMATION_CLASS SystemInformationClass,
     PVOID SystemInformation,
     ULONG SystemInformationLength,
-    PULONG ReturnLength
-);
+    PULONG ReturnLength);
+
+NTSYSAPI NTSTATUS NTAPI NtSetSystemInformation(
+    SYSTEM_INFORMATION_CLASS SystemInformationClass,
+    PVOID SystemInformation,
+    ULONG SystemInformationLength);
 
 
 /*
@@ -743,6 +834,23 @@ NTSYSAPI NTSTATUS NTAPI NtResumeThread(
 NTSYSAPI NTSTATUS NTAPI NtTerminateThread(
     HANDLE ThreadHandle,
     NTSTATUS ExitStatus);
+
+NTSYSAPI NTSTATUS NTAPI NtQueueApcThread(
+    HANDLE ThreadHandle,
+    PKNORMAL_ROUTINE ApcRoutine,
+    PVOID NormalContext,
+    PVOID SystemArgument1,
+    PVOID SystemArgument2);
+
+/* Since: 6.1 */
+NTSYSAPI NTSTATUS NTAPI NtQueueApcThreadEx(
+    HANDLE ThreadHandle,
+    HANDLE ApcReserveHandle,
+    PKNORMAL_ROUTINE ApcRoutine,
+    PVOID NormalContext,
+    PVOID SystemArgument1,
+    PVOID SystemArgument2);
+
 
 /*
  * VIRTUAL MEMORY
@@ -1190,6 +1298,30 @@ NTSYSAPI NTSTATUS NTAPI NtReadRequestData(
     ULONG BufferSize,
     PULONG NumberOfBytesRead);
 
+
+/*
+ * I/O
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtAllocateReserveObject(
+    PHANDLE ReserveHandle,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    ULONG ObjectType);
+
+NTSYSAPI NTSTATUS NTAPI NtSetIoCompletion(
+    HANDLE IoCompletionHandle,
+    PVOID CompletionKey,
+    PVOID CompletionContext,
+    NTSTATUS CompletionStatus,
+    ULONG CompletionInformation);
+
+NTSYSAPI NTSTATUS NTAPI NtSetIoCompletionEx(
+    HANDLE IoCompletionHandle,
+    HANDLE ReserveHandle,
+    PVOID CompletionKey,
+    PVOID CompletionContext,
+    NTSTATUS CompletionStatus,
+    ULONG CompletionInformation);
 
 /*
  * C runtime support
