@@ -122,13 +122,15 @@ typedef VOID (NTAPI *PKRUNDOWN_ROUTINE)(PKAPC Apc);
  * Object Manager
  */
 
- /* NOTE: Verify enumeration values. */
+ /* Confirmed: 6.1 */
 typedef enum _OBJECT_INFORMATION_CLASS {
-    ObjectBasicInformation,
-    ObjectNameInformation,
-    ObjectTypeInformation,
-    ObjectAllInformation,
-    ObjectDataInformation,
+    ObjectBasicInformation = 0,
+    ObjectNameInformation = 1,
+    ObjectTypeInformation = 2,
+    ObjectTypesInformation = 3,
+    ObjectHandleFlagInformation = 4,
+    ObjectSessionInformation = 5,
+    MaxObjectInfoClass = 6,
 } OBJECT_INFORMATION_CLASS;
 
 typedef struct _OBJECT_BASIC_INFORMATION {
@@ -359,6 +361,8 @@ typedef enum _SYSTEM_INFORMATION_CLASS
     MaxSystemInfoClass=0x0095
 } SYSTEM_INFORMATION_CLASS, *PSYSTEM_INFORMATION_CLASS;
 
+/* SystemBasicInformation */
+
 typedef struct _SYSTEM_BASIC_INFORMATION
 {
     ULONG Reserved;
@@ -373,6 +377,18 @@ typedef struct _SYSTEM_BASIC_INFORMATION
     ULONG ActiveProcessorsAffinityMask;
     UCHAR NumberOfProcessors;
 } SYSTEM_BASIC_INFORMATION;
+
+/* SystemProcessorInformation */
+
+typedef struct _SYSTEM_PROCESSOR_INFORMATION {
+    USHORT ProcessorArchitecture;
+    USHORT ProcessorLevel;
+    USHORT ProcessorRevision;
+    USHORT MaximumProcessors;
+    ULONG ProcessorFeatureBits;
+} SYSTEM_PROCESSOR_INFORMATION, *PSYSTEM_PROCESSOR_INFORMATION;
+
+/* SystemProcessInformation*/
 
 typedef struct _SYSTEM_PROCESS_INFORMATION
 {
@@ -397,13 +413,7 @@ typedef struct _SYSTEM_PROCESS_INFORMATION
     /* Array of SYSTEM_THREAD follows */
 } SYSTEM_PROCESS_INFORMATION, *PSYSTEM_PROCESS_INFORMATION;
 
-typedef struct _SYSTEM_PROCESSOR_INFORMATION {
-    USHORT ProcessorArchitecture;
-    USHORT ProcessorLevel;
-    USHORT ProcessorRevision;
-    USHORT MaximumProcessors;
-    ULONG ProcessorFeatureBits;
-} SYSTEM_PROCESSOR_INFORMATION, *PSYSTEM_PROCESSOR_INFORMATION;
+/* SystemProcessorPerformanceInformation*/
 
 typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION {
     LARGE_INTEGER IdleTime;
@@ -413,6 +423,8 @@ typedef struct _SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION {
     LARGE_INTEGER InterruptTime;
     ULONG InterruptCount;
 } SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION, *PSYSTEM_PROCESSOR_PERFORMANCE_INFORMATION;
+
+/* SystemFlagsInformation */
 
 typedef enum _SYSTEM_GLOBAL_FLAGS {
     FLG_STOP_ON_EXCEPTION           = 0x00000001,
@@ -452,6 +464,8 @@ typedef struct _SYSTEM_FLAGS_INFORMATION {
     SYSTEM_GLOBAL_FLAGS Flags;
 } SYSTEM_FLAGS_INFORMATION, *PSYSTEM_FLAGS_INFORMATION;
 
+/* SystemHandleInformation */
+
 typedef enum _SYSTEM_HANDLE_FLAGS {
     PROTECT_FROM_CLOSE=1,
     INHERIT=2
@@ -471,6 +485,25 @@ typedef struct _SYSTEM_HANDLE_INFORMATION {
     ULONG NumberOfHandles;
     SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } SYSTEM_HANDLE_INFORMATION, *PSYSTEM_HANDLE_INFORMATION;
+
+/* SystemExtendedHandleInformation: since 5.1 */
+
+typedef struct _SYSTEM_EXTENDED_HANDLE_TABLE_ENTRY_INFO {
+    PVOID Object;
+    HANDLE UniqueProcessId;
+    HANDLE HandleValue;
+    ULONG GrantedAccess;
+    USHORT CreatorBackTraceIndex;
+    USHORT ObjectTypeIndex;
+    ULONG HandleAttributes;
+    ULONG Reserved;
+} SYSTEM_EXTENDED_HANDLE_TABLE_ENTRY_INFO, *PSYSTEM_EXTENDED_HANDLE_TABLE_ENTRY_INFO;
+
+typedef struct _SYSTEM_EXTENDED_HANDLE_INFORMATION {
+    ULONG_PTR NumberOfHandles;
+    ULONG_PTR Reserved;
+    SYSTEM_EXTENDED_HANDLE_TABLE_ENTRY_INFO Handles[1];
+} SYSTEM_EXTENDED_HANDLE_INFORMATION, *PSYSTEM_EXTENDED_HANDLE_INFORMATION;
 
 
 NTSYSAPI NTSTATUS NTAPI NtQuerySystemInformation(
