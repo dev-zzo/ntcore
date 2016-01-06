@@ -118,39 +118,48 @@ typedef VOID (NTAPI *PKKERNEL_ROUTINE)(
 typedef VOID (NTAPI *PKRUNDOWN_ROUTINE)(PKAPC Apc);
 
 
+/******************************************************************
+ * Object Manager related API
+ *****************************************************************/
+
 /*
- * Object Manager
+ * Types
  */
 
- /* Confirmed: 6.1 */
-typedef enum _OBJECT_INFORMATION_CLASS {
-    ObjectBasicInformation = 0,
-    ObjectNameInformation = 1,
-    ObjectTypeInformation = 2,
-    ObjectTypesInformation = 3,
-    ObjectHandleFlagInformation = 4,
-    ObjectSessionInformation = 5,
+typedef enum _OBJECT_INFORMATION_CLASS {    // Q/S
+    ObjectBasicInformation = 0,             // Y/N
+    ObjectNameInformation = 1,              // Y/N
+    ObjectTypeInformation = 2,              // Y/N
+    ObjectTypesInformation = 3,             // Y/N
+    ObjectHandleFlagInformation = 4,        // Y/Y
+    ObjectSessionInformation = 5,           // N/Y
     MaxObjectInfoClass = 6,
 } OBJECT_INFORMATION_CLASS;
 
+/* ObjectBasicInformation */
+
 typedef struct _OBJECT_BASIC_INFORMATION {
     ULONG Attributes;
-    ACCESS_MASK DesiredAccess;
+    ACCESS_MASK GrantedAccess;
     ULONG HandleCount;
-    ULONG ReferenceCount;
-    ULONG PagedPoolUsage;
-    ULONG NonPagedPoolUsage;
+    ULONG PointerCount;
+    ULONG PagedPoolCharge;
+    ULONG NonPagedPoolCharge;
     ULONG Reserved[3];
-    ULONG NameInformationLength;
-    ULONG TypeInformationLength;
-    ULONG SecurityDescriptorLength;
+    ULONG NameInfoSize;
+    ULONG TypeInfoSize;
+    ULONG SecurityDescriptorSize;
     LARGE_INTEGER CreationTime;
 } OBJECT_BASIC_INFORMATION, *POBJECT_BASIC_INFORMATION;
 
+/* ObjectNameInformation */
+
 typedef struct _OBJECT_NAME_INFORMATION {
     UNICODE_STRING Name;
-    WCHAR NameBuffer[1];
+    /* Name buffer follows */
 } OBJECT_NAME_INFORMATION, *POBJECT_NAME_INFORMATION;
+
+/* ObjectTypeInformation */
 
 typedef struct _OBJECT_TYPE_INFORMATION {
     UNICODE_STRING TypeName;
@@ -175,6 +184,25 @@ typedef struct _OBJECT_TYPE_INFORMATION {
     ULONG DefaultPagedPoolCharge;
     ULONG DefaultNonPagedPoolCharge;
 } OBJECT_TYPE_INFORMATION, *POBJECT_TYPE_INFORMATION;
+
+/* ObjectTypesInformation */
+
+typedef struct _OBJECT_TYPES_INFORMATION {
+    ULONG NumberOfTypes;
+    /* Not in original definition, added for convenience */
+    OBJECT_TYPE_INFORMATION Types[0];
+} OBJECT_TYPES_INFORMATION, *POBJECT_TYPES_INFORMATION;
+
+/* ObjectHandleFlagInformation */
+
+typedef struct _OBJECT_HANDLE_FLAG_INFORMATION {
+    BOOL Inherit;
+    BOOL ProtectFromClose;
+} OBJECT_HANDLE_FLAG_INFORMATION, *POBJECT_HANDLE_FLAG_INFORMATION;
+
+/*
+ * Functions
+ */
 
 NTSYSAPI NTSTATUS NTAPI NtDuplicateObject(
     HANDLE SourceProcessHandle,
@@ -202,169 +230,99 @@ NTSYSAPI NTSTATUS NTAPI NtClose(
     HANDLE ObjectHandle);
 
 
+/******************************************************************
+ * System related API
+ *****************************************************************/
+
 /*
- * SYSTEM
+ * Types
  */
 
-/* http://www.exploit-monday.com/2013/06/undocumented-ntquerysysteminformation.html */
-typedef enum _SYSTEM_INFORMATION_CLASS
-{
-    SystemBasicInformation=0x0000,
-    SystemProcessorInformation=0x0001,
-    SystemPerformanceInformation=0x0002,
-    SystemTimeOfDayInformation=0x0003,
-    SystemPathInformation=0x0004,
-    SystemProcessInformation=0x0005,
-    SystemCallCountInformation=0x0006,
-    SystemDeviceInformation=0x0007,
-    SystemProcessorPerformanceInformation=0x0008,
-    SystemFlagsInformation=0x0009,
-    SystemCallTimeInformation=0x000A,
-    SystemModuleInformation=0x000B,
-    SystemLocksInformation=0x000C,
-    SystemStackTraceInformation=0x000D,
-    SystemPagedPoolInformation=0x000E,
-    SystemNonPagedPoolInformation=0x000F,
-    SystemHandleInformation=0x0010,
-    SystemObjectInformation=0x0011,
-    SystemPageFileInformation=0x0012,
-    SystemVdmInstemulInformation=0x0013,
-    SystemVdmBopInformation=0x0014,
-    SystemFileCacheInformation=0x0015,
-    SystemPoolTagInformation=0x0016,
-    SystemInterruptInformation=0x0017,
-    SystemDpcBehaviorInformation=0x0018,
-    SystemFullMemoryInformation=0x0019,
-    SystemLoadGdiDriverInformation=0x001A,
-    SystemUnloadGdiDriverInformation=0x001B,
-    SystemTimeAdjustmentInformation=0x001C,
-    SystemSummaryMemoryInformation=0x001D,
-    SystemMirrorMemoryInformation=0x001E,
-    SystemPerformanceTraceInformation=0x001F,
-    SystemCrashDumpInformation=0x0020,
-    SystemExceptionInformation=0x0021,
-    SystemCrashDumpStateInformation=0x0022,
-    SystemKernelDebuggerInformation=0x0023,
-    SystemContextSwitchInformation=0x0024,
-    SystemRegistryQuotaInformation=0x0025,
-    SystemExtendServiceTableInformation=0x0026,
-    SystemPrioritySeperation=0x0027,
-    SystemVerifierAddDriverInformation=0x0028,
-    SystemVerifierRemoveDriverInformation=0x0029,
-    SystemProcessorIdleInformation=0x002A,
-    SystemLegacyDriverInformation=0x002B,
-    SystemCurrentTimeZoneInformation=0x002C,
-    SystemLookasideInformation=0x002D,
-    SystemTimeSlipNotification=0x002E,
-    SystemSessionCreate=0x002F,
-    SystemSessionDetach=0x0030,
-    SystemSessionInformation=0x0031,
-    SystemRangeStartInformation=0x0032,
-    SystemVerifierInformation=0x0033,
-    SystemVerifierThunkExtend=0x0034,
-    SystemSessionProcessInformation=0x0035,
-    SystemLoadGdiDriverInSystemSpace=0x0036,
-    SystemNumaProcessorMap=0x0037,
-    SystemPrefetcherInformation=0x0038,
-    SystemExtendedProcessInformation=0x0039,
-    SystemRecommendedSharedDataAlignment=0x003A,
-    SystemComPlusPackage=0x003B,
-    SystemNumaAvailableMemory=0x003C,
-    SystemProcessorPowerInformation=0x003D,
-    SystemEmulationBasicInformation=0x003E,
-    SystemEmulationProcessorInformation=0x003F,
-    SystemExtendedHandleInformation=0x0040,
-    SystemLostDelayedWriteInformation=0x0041,
-    SystemBigPoolInformation=0x0042,
-    SystemSessionPoolTagInformation=0x0043,
-    SystemSessionMappedViewInformation=0x0044,
-    SystemHotpatchInformation=0x0045,
-    SystemObjectSecurityMode=0x0046,
-    SystemWatchdogTimerHandler=0x0047,
-    SystemWatchdogTimerInformation=0x0048,
-    SystemLogicalProcessorInformation=0x0049,
-    SystemWow64SharedInformationObsolete=0x004A,
-    SystemRegisterFirmwareTableInformationHandler=0x004B,
-    SystemFirmwareTableInformation=0x004C,
-    SystemModuleInformationEx=0x004D,
-    SystemVerifierTriageInformation=0x004E,
-    SystemSuperfetchInformation=0x004F,
-    SystemMemoryListInformation=0x0050,
-    SystemFileCacheInformationEx=0x0051,
-    SystemThreadPriorityClientIdInformation=0x0052,
-    SystemProcessorIdleCycleTimeInformation=0x0053,
-    SystemVerifierCancellationInformation=0x0054,
-    SystemProcessorPowerInformationEx=0x0055,
-    SystemRefTraceInformation=0x0056,
-    SystemSpecialPoolInformation=0x0057,
-    SystemProcessIdInformation=0x0058,
-    SystemErrorPortInformation=0x0059,
-    SystemBootEnvironmentInformation=0x005A,
-    SystemHypervisorInformation=0x005B,
-    SystemVerifierInformationEx=0x005C,
-    SystemTimeZoneInformation=0x005D,
-    SystemImageFileExecutionOptionsInformation=0x005E,
-    SystemCoverageInformation=0x005F,
-    SystemPrefetchPatchInformation=0x0060,
-    SystemVerifierFaultsInformation=0x0061,
-    SystemSystemPartitionInformation=0x0062,
-    SystemSystemDiskInformation=0x0063,
-    SystemProcessorPerformanceDistribution=0x0064,
-    SystemNumaProximityNodeInformation=0x0065,
-    SystemDynamicTimeZoneInformation=0x0066,
-    SystemCodeIntegrityInformation=0x0067,
-    SystemProcessorMicrocodeUpdateInformation=0x0068,
-    SystemProcessorBrandString=0x0069,
-    SystemVirtualAddressInformation=0x006A,
-    SystemLogicalProcessorAndGroupInformation=0x006B,
-    SystemProcessorCycleTimeInformation=0x006C,
-    SystemStoreInformation=0x006D,
-    SystemRegistryAppendString=0x006E,
-    SystemAitSamplingValue=0x006F,
-    SystemVhdBootInformation=0x0070,
-    SystemCpuQuotaInformation=0x0071,
-    SystemNativeBasicInformation=0x0072,
-    SystemErrorPortTimeouts=0x0073,
-    SystemLowPriorityIoInformation=0x0074,
-    SystemBootEntropyInformation=0x0075,
-    SystemVerifierCountersInformation=0x0076,
-    SystemPagedPoolInformationEx=0x0077,
-    SystemSystemPtesInformationEx=0x0078,
-    SystemNodeDistanceInformation=0x0079,
-    SystemAcpiAuditInformation=0x007A,
-    SystemBasicPerformanceInformation=0x007B,
-    SystemQueryPerformanceCounterInformation=0x007C,
-    SystemSessionBigPoolInformation=0x007D,
-    SystemBootGraphicsInformation=0x007E,
-    SystemScrubPhysicalMemoryInformation=0x007F,
-    SystemBadPageInformation=0x0080,
-    SystemProcessorProfileControlArea=0x0081,
-    SystemCombinePhysicalMemoryInformation=0x0082,
-    SystemEntropyInterruptTimingInformation=0x0083,
-    SystemConsoleInformation=0x0084,
-    SystemPlatformBinaryInformation=0x0085,
-    SystemThrottleNotificationInformation=0x0086,
-    SystemHypervisorProcessorCountInformation=0x0087,
-    SystemDeviceDataInformation=0x0088,
-    SystemDeviceDataEnumerationInformation=0x0089,
-    SystemMemoryTopologyInformation=0x008A,
-    SystemMemoryChannelInformation=0x008B,
-    SystemBootLogoInformation=0x008C,
-    SystemProcessorPerformanceInformationEx=0x008D,
-    SystemSpare0=0x008E,
-    SystemSecureBootPolicyInformation=0x008F,
-    SystemPageFileInformationEx=0x0090,
-    SystemSecureBootInformation=0x0091,
-    SystemEntropyInterruptTimingRawInformation=0x0092,
-    SystemPortableWorkspaceEfiLauncherInformation=0x0093,
-    SystemFullProcessInformation=0x0094,
-    MaxSystemInfoClass=0x0095
+/* Current version: 5.1 */
+typedef enum _SYSTEM_INFORMATION_CLASS {
+    SystemBasicInformation = 0x0,
+    SystemProcessorInformation = 0x1,
+    SystemPerformanceInformation = 0x2,
+    SystemTimeOfDayInformation = 0x3,
+    SystemPathInformation = 0x4,
+    SystemProcessInformation = 0x5,
+    SystemCallCountInformation = 0x6,
+    SystemDeviceInformation = 0x7,
+    SystemProcessorPerformanceInformation = 0x8,
+    SystemFlagsInformation = 0x9,
+    SystemCallTimeInformation = 0xA,
+    SystemModuleInformation = 0xB,
+    SystemLocksInformation = 0xC,
+    SystemStackTraceInformation = 0xD,
+    SystemPagedPoolInformation = 0xE,
+    SystemNonPagedPoolInformation = 0xF,
+    SystemHandleInformation = 0x10,
+    SystemObjectInformation = 0x11,
+    SystemPageFileInformation = 0x12,
+    SystemVdmInstemulInformation = 0x13,
+    SystemVdmBopInformation = 0x14,
+    SystemFileCacheInformation = 0x15,
+    SystemPoolTagInformation = 0x16,
+    SystemInterruptInformation = 0x17,
+    SystemDpcBehaviorInformation = 0x18,
+    SystemFullMemoryInformation = 0x19,
+    SystemLoadGdiDriverInformation = 0x1A,
+    SystemUnloadGdiDriverInformation = 0x1B,
+    SystemTimeAdjustmentInformation = 0x1C,
+    SystemSummaryMemoryInformation = 0x1D,
+    SystemMirrorMemoryInformation = 0x1E,
+    SystemPerformanceTraceInformation = 0x1F,
+    SystemObsolete0 = 0x20,
+    SystemExceptionInformation = 0x21,
+    SystemCrashDumpStateInformation = 0x22,
+    SystemKernelDebuggerInformation = 0x23,
+    SystemContextSwitchInformation = 0x24,
+    SystemRegistryQuotaInformation = 0x25,
+    SystemExtendServiceTableInformation = 0x26,
+    SystemPrioritySeperation = 0x27,
+    SystemVerifierAddDriverInformation = 0x28,
+    SystemVerifierRemoveDriverInformation = 0x29,
+    SystemProcessorIdleInformation = 0x2A,
+    SystemLegacyDriverInformation = 0x2B,
+    SystemCurrentTimeZoneInformation = 0x2C,
+    SystemLookasideInformation = 0x2D,
+    SystemTimeSlipNotification = 0x2E,
+    SystemSessionCreate = 0x2F,
+    SystemSessionDetach = 0x30,
+    SystemSessionInformation = 0x31,
+    SystemRangeStartInformation = 0x32,
+    SystemVerifierInformation = 0x33,
+    SystemVerifierThunkExtend = 0x34,
+    SystemSessionProcessInformation = 0x35,
+    SystemLoadGdiDriverInSystemSpace = 0x36,
+    SystemNumaProcessorMap = 0x37,
+    SystemPrefetcherInformation = 0x38,
+    SystemExtendedProcessInformation = 0x39,
+    SystemRecommendedSharedDataAlignment = 0x3A,
+    SystemComPlusPackage = 0x3B,
+    SystemNumaAvailableMemory = 0x3C,
+    SystemProcessorPowerInformation = 0x3D,
+    SystemEmulationBasicInformation = 0x3E,
+    SystemEmulationProcessorInformation = 0x3F,
+    SystemExtendedHandleInformation = 0x40,
+    SystemLostDelayedWriteInformation = 0x41,
+    SystemBigPoolInformation = 0x42,
+    SystemSessionPoolTagInformation = 0x43,
+    SystemSessionMappedViewInformation = 0x44,
+    SystemHotpatchInformation = 0x45,
+    SystemObjectSecurityMode = 0x46,
+    SystemWatchdogTimerHandler = 0x47,
+    SystemWatchdogTimerInformation = 0x48,
+    SystemLogicalProcessorInformation = 0x49,
+    SystemWow64SharedInformation = 0x4A,
+
+    MaxSystemInfoClass_NT513 = 0x4B,
+
 } SYSTEM_INFORMATION_CLASS, *PSYSTEM_INFORMATION_CLASS;
 
 /* SystemBasicInformation */
 
-typedef struct _SYSTEM_BASIC_INFORMATION
-{
+typedef struct _SYSTEM_BASIC_INFORMATION {
     ULONG Reserved;
     ULONG TimerResolution;
     ULONG PageSize;
@@ -388,10 +346,100 @@ typedef struct _SYSTEM_PROCESSOR_INFORMATION {
     ULONG ProcessorFeatureBits;
 } SYSTEM_PROCESSOR_INFORMATION, *PSYSTEM_PROCESSOR_INFORMATION;
 
+/* SystemPerformanceInformation */
+
+typedef struct _SYSTEM_PERFORMANCE_INFORMATION {
+    LARGE_INTEGER IdleProcessTime;
+    LARGE_INTEGER IoReadTransferCount;
+    LARGE_INTEGER IoWriteTransferCount;
+    LARGE_INTEGER IoOtherTransferCount;
+    ULONG IoReadOperationCount;
+    ULONG IoWriteOperationCount;
+    ULONG IoOtherOperationCount;
+    ULONG AvailablePages;
+    ULONG CommittedPages;
+    ULONG CommitLimit;
+    ULONG PeakCommitment;
+    ULONG PageFaultCount;
+    ULONG CopyOnWriteCount;
+    ULONG TransitionCount;
+    ULONG CacheTransitionCount;
+    ULONG DemandZeroCount;
+    ULONG PageReadCount;
+    ULONG PageReadIoCount;
+    ULONG CacheReadCount;
+    ULONG CacheIoCount;
+    ULONG DirtyPagesWriteCount;
+    ULONG DirtyWriteIoCount;
+    ULONG MappedPagesWriteCount;
+    ULONG MappedWriteIoCount;
+    ULONG PagedPoolPages;
+    ULONG NonPagedPoolPages;
+    ULONG PagedPoolAllocs;
+    ULONG PagedPoolFrees;
+    ULONG NonPagedPoolAllocs;
+    ULONG NonPagedPoolFrees;
+    ULONG FreeSystemPtes;
+    ULONG ResidentSystemCodePage;
+    ULONG TotalSystemDriverPages;
+    ULONG TotalSystemCodePages;
+    ULONG NonPagedPoolLookasideHits;
+    ULONG PagedPoolLookasideHits;
+    ULONG AvailablePagedPoolPages;
+    ULONG ResidentSystemCachePage;
+    ULONG ResidentPagedPoolPage;
+    ULONG ResidentSystemDriverPage;
+    ULONG CcFastReadNoWait;
+    ULONG CcFastReadWait;
+    ULONG CcFastReadResourceMiss;
+    ULONG CcFastReadNotPossible;
+    ULONG CcFastMdlReadNoWait;
+    ULONG CcFastMdlReadWait;
+    ULONG CcFastMdlReadResourceMiss;
+    ULONG CcFastMdlReadNotPossible;
+    ULONG CcMapDataNoWait;
+    ULONG CcMapDataWait;
+    ULONG CcMapDataNoWaitMiss;
+    ULONG CcMapDataWaitMiss;
+    ULONG CcPinMappedDataCount;
+    ULONG CcPinReadNoWait;
+    ULONG CcPinReadWait;
+    ULONG CcPinReadNoWaitMiss;
+    ULONG CcPinReadWaitMiss;
+    ULONG CcCopyReadNoWait;
+    ULONG CcCopyReadWait;
+    ULONG CcCopyReadNoWaitMiss;
+    ULONG CcCopyReadWaitMiss;
+    ULONG CcMdlReadNoWait;
+    ULONG CcMdlReadWait;
+    ULONG CcMdlReadNoWaitMiss;
+    ULONG CcMdlReadWaitMiss;
+    ULONG CcReadAheadIos;
+    ULONG CcLazyWriteIos;
+    ULONG CcLazyWritePages;
+    ULONG CcDataFlushes;
+    ULONG CcDataPages;
+    ULONG ContextSwitches;
+    ULONG FirstLevelTbFills;
+    ULONG SecondLevelTbFills;
+    ULONG SystemCalls;
+} SYSTEM_PERFORMANCE_INFORMATION, *PSYSTEM_PERFORMANCE_INFORMATION;
+
+/* SystemTimeOfDayInformation */
+
+typedef struct _SYSTEM_TIMEOFDAY_INFORMATION {
+    LARGE_INTEGER BootTime;
+    LARGE_INTEGER CurrentTime;
+    LARGE_INTEGER TimeZoneBias;
+    ULONG TimeZoneId;
+    ULONG Reserved;
+    ULONGLONG BootTimeBias;
+    ULONGLONG SleepTimeBias;
+} SYSTEM_TIMEOFDAY_INFORMATION, *PSYSTEM_TIMEOFDAY_INFORMATION;
+
 /* SystemProcessInformation*/
 
-typedef struct _SYSTEM_PROCESS_INFORMATION
-{
+typedef struct _SYSTEM_PROCESS_INFORMATION {
     ULONG NextEntryOffset;
     ULONG NumberOfThreads;
     LARGE_INTEGER WorkingSetPrivateSize;
@@ -488,7 +536,7 @@ typedef struct _SYSTEM_HANDLE_INFORMATION {
 
 /* SystemExtendedHandleInformation: since 5.1 */
 
-typedef struct _SYSTEM_EXTENDED_HANDLE_TABLE_ENTRY_INFO {
+typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX {
     PVOID Object;
     HANDLE UniqueProcessId;
     HANDLE HandleValue;
@@ -497,14 +545,17 @@ typedef struct _SYSTEM_EXTENDED_HANDLE_TABLE_ENTRY_INFO {
     USHORT ObjectTypeIndex;
     ULONG HandleAttributes;
     ULONG Reserved;
-} SYSTEM_EXTENDED_HANDLE_TABLE_ENTRY_INFO, *PSYSTEM_EXTENDED_HANDLE_TABLE_ENTRY_INFO;
+} SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX, *PSYSTEM_HANDLE_TABLE_ENTRY_INFO_EX;
 
-typedef struct _SYSTEM_EXTENDED_HANDLE_INFORMATION {
+typedef struct _SYSTEM_HANDLE_INFORMATION_EX {
     ULONG_PTR NumberOfHandles;
     ULONG_PTR Reserved;
     SYSTEM_EXTENDED_HANDLE_TABLE_ENTRY_INFO Handles[1];
-} SYSTEM_EXTENDED_HANDLE_INFORMATION, *PSYSTEM_EXTENDED_HANDLE_INFORMATION;
+} SYSTEM_HANDLE_INFORMATION_EX, *PSYSTEM_HANDLE_INFORMATION_EX;
 
+/*
+ * Functions
+ */
 
 NTSYSAPI NTSTATUS NTAPI NtQuerySystemInformation(
     SYSTEM_INFORMATION_CLASS SystemInformationClass,
@@ -518,9 +569,15 @@ NTSYSAPI NTSTATUS NTAPI NtSetSystemInformation(
     ULONG SystemInformationLength);
 
 
+/******************************************************************
+ * Process API
+ *****************************************************************/
+
 /*
- * PROCESSES
+ * Types
  */
+
+/* TODO: Move PEB/TEB stuff out somewhere, as this is not API */
 
 typedef struct _LDR_DATA_TABLE_ENTRY_NT513 {
     LIST_ENTRY InLoadOrderLinks;
@@ -628,39 +685,107 @@ typedef struct _PEB_NT513 {
 } PEB_NT513, *PPEB_NT513;
 
 typedef enum _PROCESS_INFORMATION_CLASS {
-    ProcessBasicInformation,
-    ProcessQuotaLimits,
-    ProcessIoCounters,
-    ProcessVmCounters,
-    ProcessTimes,
-    ProcessBasePriority,
-    ProcessRaisePriority,
-    ProcessDebugPort,
-    ProcessExceptionPort,
-    ProcessAccessToken,
-    ProcessLdtInformation,
-    ProcessLdtSize,
-    ProcessDefaultHardErrorMode,
-    ProcessIoPortHandlers,
-    ProcessPooledUsageAndLimits,
-    ProcessWorkingSetWatch,
-    ProcessUserModeIOPL,
-    ProcessEnableAlignmentFaultFixup,
-    ProcessPriorityClass,
-    ProcessWx86Information,
-    ProcessHandleCount,
-    ProcessAffinityMask,
-    ProcessPriorityBoost,
+    ProcessBasicInformation = 0x0,
+    ProcessQuotaLimits = 0x1,
+    ProcessIoCounters = 0x2,
+    ProcessVmCounters = 0x3,
+    ProcessTimes = 0x4,
+    ProcessBasePriority = 0x5,
+    ProcessRaisePriority = 0x6,
+    ProcessDebugPort = 0x7,
+    ProcessExceptionPort = 0x8,
+    ProcessAccessToken = 0x9,
+    ProcessLdtInformation = 0xA,
+    ProcessLdtSize = 0xB,
+    ProcessDefaultHardErrorMode = 0xC,
+    ProcessIoPortHandlers = 0xD,
+    ProcessPooledUsageAndLimits = 0xE,
+    ProcessWorkingSetWatch = 0xF,
+    ProcessUserModeIOPL = 0x10,
+    ProcessEnableAlignmentFaultFixup = 0x11,
+    ProcessPriorityClass = 0x12,
+    ProcessWx86Information = 0x13,
+    ProcessHandleCount = 0x14,
+    ProcessAffinityMask = 0x15,
+    ProcessPriorityBoost = 0x16,
+    ProcessDeviceMap = 0x17,
+    ProcessSessionInformation = 0x18,
+    ProcessForegroundInformation = 0x19,
+    ProcessWow64Information = 0x1A,
+    ProcessImageFileName = 0x1B,
+    ProcessLUIDDeviceMapsEnabled = 0x1C,
+    ProcessBreakOnTermination = 0x1D,
+    ProcessDebugObjectHandle = 0x1E,
+    ProcessDebugFlags = 0x1F,
+    ProcessHandleTracing = 0x20,
+    ProcessIoPriority = 0x21,
+    ProcessExecuteFlags = 0x22,
+    ProcessTlsInformation = 0x23,
+    ProcessCookie = 0x24,
+    ProcessImageInformation = 0x25,
+
+    MaxProcessInfoClass_NT520 = 0x26,
+
+    ProcessCycleTime = 0x26,
+    ProcessPagePriority = 0x27,
+    ProcessInstrumentationCallback = 0x28,
+    ProcessThreadStackAllocation = 0x29,
+    ProcessWorkingSetWatchEx = 0x2A,
+    ProcessImageFileNameWin32 = 0x2B,
+    ProcessImageFileMapping = 0x2C,
+    ProcessAffinityUpdateMode = 0x2D,
+    ProcessMemoryAllocationMode = 0x2E,
+    ProcessGroupInformation = 0x2F,
+    ProcessTokenVirtualizationEnabled = 0x30,
+    ProcessConsoleHostProcess = 0x31,
+    ProcessWindowInformation = 0x32,
+
+    MaxProcessInfoClass_NT610 = 0x33,
+
 } PROCESS_INFORMATION_CLASS, *PPROCESS_INFORMATION_CLASS;
+
+/* ProcessBasicInformation */
 
 typedef struct _PROCESS_BASIC_INFORMATION {
     NTSTATUS ExitStatus;
     PVOID PebBaseAddress;
-    ULONG_PTR AffinityMask;
+    KAFFINITY AffinityMask;
     KPRIORITY BasePriority;
     ULONG_PTR UniqueProcessId;
     ULONG_PTR InheritedFromUniqueProcessId;
 } PROCESS_BASIC_INFORMATION,*PPROCESS_BASIC_INFORMATION;
+
+/* ProcessDeviceMap */
+
+struct _PROCESS_DEVICEMAP_INFORMATION {
+    union {
+        struct {
+            PVOID DirectoryHandle;
+        } Set;
+        struct {
+            ULONG DriveMap;
+            CHAR DriveType[32];
+        } Query;
+    };
+};
+
+struct _PROCESS_DEVICEMAP_INFORMATION_EX
+{
+    union {
+        struct {
+            PVOID DirectoryHandle;
+        } Set;
+        struct {
+            ULONG DriveMap;
+            CHAR DriveType[32];
+        } Query;
+    };
+    ULONG Flags;
+};
+
+/*
+ * Functions
+ */
 
 #define NtCurrentProcess() ((HANDLE)-1)
 
@@ -671,13 +796,23 @@ NTSYSAPI NTSTATUS NTAPI NtQueryInformationProcess(
     ULONG ProcessInformationLength,
     PULONG ReturnLength);
 
+NTSYSAPI NTSTATUS NTAPI NtSetInformationProcess(
+    HANDLE ProcessHandle,
+    PROCESS_INFORMATION_CLASS ProcessInformationClass,
+    PVOID ProcessInformation,
+    ULONG ProcessInformationLength);
+
 NTSYSAPI NTSTATUS NTAPI NtTerminateProcess(
     HANDLE ProcessHandle,
     NTSTATUS ExitStatus);
 
 
+/******************************************************************
+ * Thread API
+ *****************************************************************/
+
 /*
- * THREADS
+ * Types
  */
 
 typedef struct _ACTIVATION_CONTEXT_STACK {
@@ -803,26 +938,51 @@ typedef struct _USER_STACK {
     PVOID ExpandableStackBottom;
 } USER_STACK, *PUSER_STACK;
 
-typedef enum _THREAD_INFORMATION_CLASS {          // num/query/set
-    ThreadBasicInformation,                       //  0/Y/N
-    ThreadTimes,                                  //  1/Y/N
-    ThreadPriority,                               //  2/N/Y
-    ThreadBasePriority,                           //  3/N/Y
-    ThreadAffinityMask,                           //  4/N/Y
-    ThreadImpersonationToken,                     //  5/N/Y
-    ThreadDescriptorTableEntry,                   //  6/Y/N
-    ThreadEnableAlignmentFaultFixup,              //  7/N/Y
-    ThreadEventPair,                              //  8/N/Y
-    ThreadQuerySetWin32StartAddress,              //  9/Y/Y
-    ThreadZeroTlsCell,                            // 10/N/Y
-    ThreadPerformanceCount,                       // 11/Y/N
-    ThreadAmILastThread,                          // 12/Y/N
-    ThreadIdealProcessor,                         // 13/N/Y
-    ThreadPriorityBoost,                          // 14/Y/Y
-    ThreadSetTlsArrayAddress,                     // 15/N/Y
-    ThreadIsIoPending,                            // 16/Y/N
-    ThreadHideFromDebugger                        // 17/N/Y
+/* Current: 6.1 */
+typedef enum _THREAD_INFORMATION_CLASS {        // Q/S
+    ThreadBasicInformation = 0x0,               // Y/N
+    ThreadTimes = 0x1,                          // Y/N
+    ThreadPriority = 0x2,                       // N/Y
+    ThreadBasePriority = 0x3,                   // N/Y
+    ThreadAffinityMask = 0x4,                   // N/Y
+    ThreadImpersonationToken = 0x5,             // N/Y
+    ThreadDescriptorTableEntry = 0x6,           // Y/N
+    ThreadEnableAlignmentFaultFixup = 0x7,      // N/Y
+    ThreadEventPair_Reusable = 0x8,             // N/Y
+    ThreadQuerySetWin32StartAddress = 0x9,      // Y/Y
+    ThreadZeroTlsCell = 0xA,                    // N/Y
+    ThreadPerformanceCount = 0xB,               // Y/N
+    ThreadAmILastThread = 0xC,                  // Y/N
+    ThreadIdealProcessor = 0xD,                 // N/Y
+    ThreadPriorityBoost = 0xE,                  // Y/Y
+    ThreadSetTlsArrayAddress = 0xF,             // N/Y
+    ThreadIsIoPending = 0x10,                   // Y/N
+    ThreadHideFromDebugger = 0x11,              // N/Y
+    ThreadBreakOnTermination = 0x12,
+    ThreadSwitchLegacyState = 0x13,
+
+    MaxThreadInfoClass_NT520 = 0x14,
+
+    ThreadIsTerminated = 0x14,
+    ThreadLastSystemCall = 0x15,
+    ThreadIoPriority = 0x16,
+    ThreadCycleTime = 0x17,
+    ThreadPagePriority = 0x18,
+    ThreadActualBasePriority = 0x19,
+    ThreadTebInformation = 0x1A,
+    ThreadCSwitchMon = 0x1B,
+    ThreadCSwitchPmu = 0x1C,
+    ThreadWow64Context = 0x1D,
+    ThreadGroupInformation = 0x1E,
+    ThreadUmsInformation = 0x1F,
+    ThreadCounterProfiling = 0x20,
+    ThreadIdealProcessorEx = 0x21,
+
+    MaxThreadInfoClass_NT610 = 0x22,
+
 } THREAD_INFORMATION_CLASS, *PTHREAD_INFORMATION_CLASS;
+
+/* ThreadBasicInformation */
 
 typedef struct _THREAD_BASIC_INFORMATION {
     NTSTATUS ExitStatus;
@@ -832,6 +992,10 @@ typedef struct _THREAD_BASIC_INFORMATION {
     KPRIORITY Priority;
     KPRIORITY BasePriority;
 } THREAD_BASIC_INFORMATION, *PTHREAD_BASIC_INFORMATION;
+
+/*
+ * Functions
+ */
 
 #define  NtCurrentThread() ((HANDLE)-2)
 
@@ -889,14 +1053,18 @@ NTSYSAPI NTSTATUS NTAPI NtQueueApcThreadEx(
     PVOID SystemArgument2);
 
 
+/******************************************************************
+ * Virtual Memory Manager API
+ *****************************************************************/
+
 /*
- * VIRTUAL MEMORY
+ * Types
  */
 
 typedef enum _MEMORY_INFORMATION_CLASS {
     MemoryBasicInformation,
-    MemoryWorkingSetList,
-    MemorySectionName,
+    MemoryWorkingSetInformation,
+    MemoryMappedFilenameInformation,
     MemoryBasicVlmInformation
 } MEMORY_INFORMATION_CLASS, *PMEMORY_INFORMATION_CLASS;
 
@@ -915,6 +1083,10 @@ typedef struct _MEMORY_BASIC_INFORMATION {
 typedef struct _MEMORY_SECTION_NAME {
     UNICODE_STRING SectionFileName;
 } MEMORY_SECTION_NAME, *PMEMORY_SECTION_NAME;
+
+/*
+ * Functions
+ */
 
 /* http://msdn.microsoft.com/en-us/library/windows/hardware/ff566416%28v=vs.85%29.aspx */
 NTSYSAPI NTSTATUS NTAPI NtAllocateVirtualMemory(
@@ -961,14 +1133,63 @@ NTSYSAPI NTSTATUS NTAPI NtFreeVirtualMemory(
     PSIZE_T RegionSize,
     ULONG FreeType);
 
+
+/******************************************************************
+ * Section API
+ *****************************************************************/
+
 /*
- * SECTIONS
+ * Types
  */
 
 typedef enum _SECTION_INHERIT {
-    ViewShare=1,
-    ViewUnmap=2
+    ViewShare = 1,
+    ViewUnmap = 2,
 } SECTION_INHERIT, *PSECTION_INHERIT;
+
+typedef enum _SECTION_INFORMATION_CLASS {
+    SectionBasicInformation = 0x0,
+    SectionImageInformation = 0x1,
+    MaxSectionInfoClass = 0x2,
+} SECTION_INFORMATION_CLASS, *PSECTION_INFORMATION_CLASS;
+
+/* SectionBasicInformation */
+
+typedef struct _SECTION_BASIC_INFORMATION {
+    PVOID BaseAddress;
+    ULONG AllocationAttributes;
+    LARGE_INTEGER MaximumSize;
+} SECTION_BASIC_INFORMATION, *PSECTION_BASIC_INFORMATION;
+
+/* SectionImageInformation */
+
+typedef struct _SECTION_IMAGE_INFORMATION {
+    PVOID TransferAddress;
+    ULONG ZeroBits;
+    ULONG_PTR MaximumStackSize;
+    ULONG_PTR CommittedStackSize;
+    ULONG SubSystemType;
+    union {
+        struct {
+            USHORT SubSystemMinorVersion;
+            USHORT SubSystemMajorVersion;
+        };
+        ULONG SubSystemVersion;
+    };
+    ULONG GpValue;
+    USHORT ImageCharacteristics;
+    USHORT DllCharacteristics;
+    USHORT Machine;
+    BOOL ImageContainsCode;
+    BOOL Spare1;
+    ULONG LoaderFlags;
+    ULONG ImageFileSize;
+    ULONG Reserved[1];
+} SECTION_IMAGE_INFORMATION, *PSECTION_IMAGE_INFORMATION;
+
+/*
+ * Functions
+ */
 
 NTSYSAPI NTSTATUS NTAPI NtCreateSection(
     PHANDLE SectionHandle,
@@ -996,52 +1217,77 @@ NTSYSAPI NTSTATUS NTAPI NtUnmapViewOfSection(
     PVOID BaseAddress);
 
 
+/******************************************************************
+ * File API
+ *****************************************************************/
+
 /*
- * FILES
+ * Types
  */
 
+/* Current: 6.1 */
 typedef enum _FILE_INFORMATION_CLASS {
-    FileDirectoryInformation = 1,
-    FileFullDirectoryInformation,
-    FileBothDirectoryInformation,
-    FileBasicInformation,
-    FileStandardInformation,
-    FileInternalInformation,
-    FileEaInformation,
-    FileAccessInformation,
-    FileNameInformation,
-    FileRenameInformation,
-    FileLinkInformation,
-    FileNamesInformation,
-    FileDispositionInformation,
-    FilePositionInformation,
-    FileFullEaInformation,
-    FileModeInformation,
-    FileAlignmentInformation,
-    FileAllInformation,
-    FileAllocationInformation,
-    FileEndOfFileInformation,
-    FileAlternateNameInformation,
-    FileStreamInformation,
-    FilePipeInformation,
-    FilePipeLocalInformation,
-    FilePipeRemoteInformation,
-    FileMailslotQueryInformation,
-    FileMailslotSetInformation,
-    FileCompressionInformation,
-    FileCopyOnWriteInformation,
-    FileCompletionInformation,
-    FileMoveClusterInformation,
-    FileQuotaInformation,
-    FileReparsePointInformation,
-    FileNetworkOpenInformation,
-    FileObjectIdInformation,
-    FileTrackingInformation,
-    FileOleDirectoryInformation,
-    FileContentIndexInformation,
-    FileInheritContentIndexInformation,
-    FileOleInformation,
+    FileDirectoryInformation = 0x1,
+    FileFullDirectoryInformation = 0x2,
+    FileBothDirectoryInformation = 0x3,
+    FileBasicInformation = 0x4,
+    FileStandardInformation = 0x5,
+    FileInternalInformation = 0x6,
+    FileEaInformation = 0x7,
+    FileAccessInformation = 0x8,
+    FileNameInformation = 0x9,
+    FileRenameInformation = 0xA,
+    FileLinkInformation = 0xB,
+    FileNamesInformation = 0xC,
+    FileDispositionInformation = 0xD,
+    FilePositionInformation = 0xE,
+    FileFullEaInformation = 0xF,
+    FileModeInformation = 0x10,
+    FileAlignmentInformation = 0x11,
+    FileAllInformation = 0x12,
+    FileAllocationInformation = 0x13,
+    FileEndOfFileInformation = 0x14,
+    FileAlternateNameInformation = 0x15,
+    FileStreamInformation = 0x16,
+    FilePipeInformation = 0x17,
+    FilePipeLocalInformation = 0x18,
+    FilePipeRemoteInformation = 0x19,
+    FileMailslotQueryInformation = 0x1A,
+    FileMailslotSetInformation = 0x1B,
+    FileCompressionInformation = 0x1C,
+    FileObjectIdInformation = 0x1D,
+    FileCompletionInformation = 0x1E,
+    FileMoveClusterInformation = 0x1F,
+    FileQuotaInformation = 0x20,
+    FileReparsePointInformation = 0x21,
+    FileNetworkOpenInformation = 0x22,
+    FileAttributeTagInformation = 0x23,
+    FileTrackingInformation = 0x24,
+    FileIdBothDirectoryInformation = 0x25,
+    FileIdFullDirectoryInformation = 0x26,
+    FileValidDataLengthInformation = 0x27,
+    FileShortNameInformation = 0x28,
+    FileIoCompletionNotificationInformation = 0x29,
+    FileIoStatusBlockRangeInformation = 0x2A,
+    FileIoPriorityHintInformation = 0x2B,
+    FileSfioReserveInformation = 0x2C,
+    FileSfioVolumeInformation = 0x2D,
+    FileHardLinkInformation = 0x2E,
+    FileProcessIdsUsingFileInformation = 0x2F,
+    FileNormalizedNameInformation = 0x30,
+    FileNetworkPhysicalNameInformation = 0x31,
+    FileIdGlobalTxDirectoryInformation = 0x32,
+    FileIsRemoteDeviceInformation = 0x33,
+    FileAttributeCacheInformation = 0x34,
+    FileNumaNodeInformation = 0x35,
+    FileStandardLinkInformation = 0x36,
+    FileRemoteProtocolInformation = 0x37,
+    FileMaximumInformation = 0x38,
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
+
+/*
+ * Functions
+ */
 
 /* http://msdn.microsoft.com/en-us/library/windows/hardware/ff566424%28v=vs.85%29.aspx */
 NTSYSAPI NTSTATUS NTAPI NtCreateFile(
@@ -1086,8 +1332,12 @@ NTSYSAPI NTSTATUS NTAPI NtDeviceIoControlFile(
     ULONG OutputBufferLength);
 
 
+/******************************************************************
+ * Debugger API
+ *****************************************************************/
+
 /*
- * DEBUGGER
+ * Types
  */
 
 /* Ref: http://www.openrce.org/articles/full_view/25 */
@@ -1184,6 +1434,10 @@ typedef struct _DBGUI_WAIT_STATE_CHANGE
     } StateInfo;
 } DBGUI_WAIT_STATE_CHANGE, *PDBGUI_WAIT_STATE_CHANGE;
 
+/*
+ * Functions
+ */
+
 NTSYSAPI NTSTATUS NTAPI NtCreateDebugObject(
     PHANDLE DebugHandle,
     ACCESS_MASK DesiredAccess,
@@ -1210,8 +1464,12 @@ NTSYSAPI NTSTATUS NTAPI NtRemoveProcessDebug(
     HANDLE DebugHandle);
 
 
+/******************************************************************
+ * Local procedure calls API
+ *****************************************************************/
+
 /*
- * LOCAL PROCEDURE CALLS
+ * Types
  */
 
 typedef struct _PORT_VIEW
@@ -1258,6 +1516,10 @@ typedef struct _PORT_MESSAGE
     };
     //  UCHAR Data[];
 } PORT_MESSAGE, *PPORT_MESSAGE;
+
+/*
+ * Functions
+ */
 
 NTSYSAPI NTSTATUS NTAPI NtCreatePort(
     PHANDLE PortHandle,
@@ -1336,8 +1598,12 @@ NTSYSAPI NTSTATUS NTAPI NtReadRequestData(
     PULONG NumberOfBytesRead);
 
 
+/******************************************************************
+ * Input/Output Manager API
+ *****************************************************************/
+
 /*
- * I/O
+ * Functions
  */
 
 NTSYSAPI NTSTATUS NTAPI NtAllocateReserveObject(
@@ -1360,9 +1626,10 @@ NTSYSAPI NTSTATUS NTAPI NtSetIoCompletionEx(
     NTSTATUS CompletionStatus,
     ULONG CompletionInformation);
 
-/*
- * C runtime support
- */
+
+/******************************************************************
+ * Input/Output Manager API
+ *****************************************************************/
 
 int vsprintf(
    char *buffer,
