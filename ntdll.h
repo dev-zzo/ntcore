@@ -139,7 +139,7 @@ typedef VOID (NTAPI *PKRUNDOWN_ROUTINE)(PKAPC Apc);
 
 
 /******************************************************************
- * Object Manager related API
+ * General object API
  *****************************************************************/
 
 /*
@@ -247,6 +247,30 @@ NTSYSAPI NTSTATUS NTAPI NtSetInformationObject(
     OBJECT_INFORMATION_CLASS ObjectInformationClass,
     PVOID ObjectInformation,
     ULONG ObjectInformationLength);
+
+NTSYSAPI NTSTATUS NTAPI NtWaitForSingleObject(
+    HANDLE ObjectHandle,
+    BOOLEAN Alertable,
+    PLARGE_INTEGER TimeOut OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtWaitForMultipleObjects(
+    ULONG ObjectCount,
+    PHANDLE ObjectsArray,
+    OBJECT_WAIT_TYPE WaitType,
+    BOOLEAN Alertable,
+    PLARGE_INTEGER TimeOut OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtQuerySecurityObject(
+    HANDLE ObjectHandle,
+    SECURITY_INFORMATION SecurityInformationClass,
+    PSECURITY_DESCRIPTOR DescriptorBuffer,
+    ULONG DescriptorBufferLength,
+    PULONG RequiredLength);
+
+NTSYSAPI NTSTATUS NTAPI NtSetSecurityObject(
+    HANDLE ObjectHandle,
+    SECURITY_INFORMATION SecurityInformationClass,
+    PSECURITY_DESCRIPTOR DescriptorBuffer);
 
 NTSYSAPI NTSTATUS NTAPI NtClose(
     HANDLE ObjectHandle);
@@ -1314,6 +1338,24 @@ NTSYSAPI NTSTATUS NTAPI NtProtectVirtualMemory(
     ULONG NewAccessProtection,
     PULONG OldAccessProtection);
 
+NTSYSAPI NTSTATUS NTAPI NtLockVirtualMemory(
+    HANDLE ProcessHandle,
+    PVOID *BaseAddress,
+    OUT PULONG NumberOfBytesToLock,
+    ULONG LockOption);
+
+NTSYSAPI NTSTATUS NTAPI NtUnlockVirtualMemory(
+    HANDLE ProcessHandle,
+    PVOID *BaseAddress,
+    OUT PULONG NumberOfBytesToUnlock,
+    ULONG LockOption);
+
+NTSYSAPI NTSTATUS NTAPI NtFlushVirtualMemory(
+    HANDLE ProcessHandle,
+    PVOID *BaseAddress,
+    PULONG NumberOfBytesToFlush,
+    PIO_STATUS_BLOCK IoStatusBlock);
+
 /* http://msdn.microsoft.com/en-us/library/windows/hardware/ff566460%28v=vs.85%29.aspx */
 NTSYSAPI NTSTATUS NTAPI NtFreeVirtualMemory(
     HANDLE ProcessHandle,
@@ -1653,27 +1695,6 @@ NTSYSAPI NTSTATUS NTAPI NtQuerySymbolicLinkObject(
     HANDLE LinkHandle,
     PUNICODE_STRING LinkTarget,
     PULONG ReturnedLength OPTIONAL);
-
-
-/******************************************************************
- * Security API
- *****************************************************************/
-
-/*
- * Functions
- */
-
-NTSYSAPI NTSTATUS NTAPI NtQuerySecurityObject(
-    HANDLE ObjectHandle,
-    SECURITY_INFORMATION SecurityInformationClass,
-    PSECURITY_DESCRIPTOR DescriptorBuffer,
-    ULONG DescriptorBufferLength,
-    PULONG RequiredLength);
-
-NTSYSAPI NTSTATUS NTAPI NtSetSecurityObject(
-    HANDLE ObjectHandle,
-    SECURITY_INFORMATION SecurityInformationClass,
-    PSECURITY_DESCRIPTOR DescriptorBuffer);
 
 
 /******************************************************************
@@ -2363,6 +2384,44 @@ NTSYSAPI NTSTATUS NTAPI NtQueryIntervalProfile(
     KPROFILE_SOURCE ProfileSource,
     PULONG Interval);
 
+
+/******************************************************************
+ * Drivers API
+ *****************************************************************/
+
+NTSYSAPI NTSTATUS NTAPI NtLoadDriver(
+    PUNICODE_STRING DriverServiceName);
+
+NTSYSAPI NTSTATUS NTAPI NtUnloadDriver(
+    PUNICODE_STRING DriverServiceName);
+
+
+/******************************************************************
+ * Time API
+ *****************************************************************/
+
+NTSYSAPI ULONG NTAPI NtGetTickCount();
+
+NTSYSAPI NTSTATUS NTAPI NtQueryPerformanceCounter(
+    PLARGE_INTEGER PerformanceCounter,
+    PLARGE_INTEGER PerformanceFrequency OPTIONAL);
+    
+NTSYSAPI NTSTATUS NTAPI NtQuerySystemTime(
+    PLARGE_INTEGER SystemTime);
+    
+NTSYSAPI NTSTATUS NTAPI NtQueryTimerResolution(
+    PULONG MinimumResolution,
+    PULONG MaximumResolution,
+    PULONG CurrentResolution);
+  
+NTSYSAPI NTSTATUS NTAPI NtSetSystemTime(
+    PLARGE_INTEGER SystemTime,
+    PLARGE_INTEGER PreviousTime OPTIONAL);
+  
+NTSYSAPI NTSTATUS NTAPI NtSetTimerResolution(
+    ULONG DesiredResolution,
+    BOOLEAN SetResolution,
+    PULONG CurrentResolution);
 
 /******************************************************************
  * C runtime API
