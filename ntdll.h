@@ -3,6 +3,10 @@
 
 //#include <winternl.h>
 
+#ifndef OPTIONAL
+#define OPTIONAL
+#endif
+
 /* Stuff not defined for userland programs */
 
 #ifndef NT_SUCCESS
@@ -100,6 +104,22 @@ typedef struct _VM_COUNTERS {
 #endif
 } VM_COUNTERS;
 
+typedef struct _VM_COUNTERS_EX {
+    SIZE_T PeakVirtualSize;
+    SIZE_T VirtualSize;
+    ULONG PageFaultCount;
+    SIZE_T PeakWorkingSetSize;
+    SIZE_T WorkingSetSize;
+    SIZE_T QuotaPeakPagedPoolUsage;
+    SIZE_T QuotaPagedPoolUsage;
+    SIZE_T QuotaPeakNonPagedPoolUsage;
+    SIZE_T QuotaNonPagedPoolUsage;
+    SIZE_T PagefileUsage;
+    SIZE_T PeakPagefileUsage;
+    SIZE_T PrivateUsage;
+} VM_COUNTERS_EX;
+
+
 typedef struct _KAPC KAPC;
 typedef KAPC *PKAPC;
 
@@ -132,6 +152,8 @@ typedef enum _OBJECT_INFORMATION_CLASS {    // Q/S
     ObjectTypeInformation = 2,              // Y/N
     ObjectTypesInformation = 3,             // Y/N
     ObjectHandleFlagInformation = 4,        // Y/Y
+    MaxObjectInfoClass_NT500 = 0x5,
+
     ObjectSessionInformation = 5,           // N/Y
     MaxObjectInfoClass = 6,
 } OBJECT_INFORMATION_CLASS;
@@ -196,8 +218,8 @@ typedef struct _OBJECT_TYPES_INFORMATION {
 /* ObjectHandleFlagInformation */
 
 typedef struct _OBJECT_HANDLE_FLAG_INFORMATION {
-    BOOL Inherit;
-    BOOL ProtectFromClose;
+    BOOLEAN Inherit;
+    BOOLEAN ProtectFromClose;
 } OBJECT_HANDLE_FLAG_INFORMATION, *POBJECT_HANDLE_FLAG_INFORMATION;
 
 /*
@@ -314,10 +336,10 @@ typedef enum _SYSTEM_INFORMATION_CLASS {
     SystemWatchdogTimerHandler = 0x47,
     SystemWatchdogTimerInformation = 0x48,
     SystemLogicalProcessorInformation = 0x49,
+    MaxSystemInfoClass_NT500 = 0x4A,
+
     SystemWow64SharedInformation = 0x4A,
-
     MaxSystemInfoClass_NT513 = 0x4B,
-
 } SYSTEM_INFORMATION_CLASS, *PSYSTEM_INFORMATION_CLASS;
 
 /* SystemBasicInformation */
@@ -570,119 +592,49 @@ NTSYSAPI NTSTATUS NTAPI NtSetSystemInformation(
 
 
 /******************************************************************
- * Process API
+ * Directory API
  *****************************************************************/
 
 /*
  * Types
  */
 
-/* TODO: Move PEB/TEB stuff out somewhere, as this is not API */
+typedef struct _OBJECT_DIRECTORY_INFORMATION {
+    UNICODE_STRING Name;
+    UNICODE_STRING TypeName;
+} OBJECT_DIRECTORY_INFORMATION, *POBJECT_DIRECTORY_INFORMATION;
 
-typedef struct _LDR_DATA_TABLE_ENTRY_NT513 {
-    LIST_ENTRY InLoadOrderLinks;
-    LIST_ENTRY InMemoryOrderLinks;
-    LIST_ENTRY InInitializationOrderLinks;
-    PVOID DllBase;
-    PVOID EntryPoint;
-    ULONG SizeOfImage;
-    UNICODE_STRING FullDllName;
-    UNICODE_STRING BaseDllName;
-    ULONG Flags;
-    USHORT LoadCount;
-    USHORT TlsIndex;
-    union {
-        LIST_ENTRY HashLinks;
-        struct {
-            PVOID SectionPointer;
-            ULONG CheckSum;
-        };
-    };
-    union {
-        ULONG TimeDateStamp;
-        PVOID LoadedImports;
-    };
-    PVOID EntryPointActivationContext;
-    PVOID PatchInformation;
-} LDR_DATA_TABLE_ENTRY_NT513, *PLDR_DATA_TABLE_ENTRY_NT513;
+/*
+ * Functions
+ */
 
-typedef struct _PEB_LDR_DATA_NT513 {
-    ULONG Length;
-    BOOLEAN Initialized;
-    HANDLE SsHandle;
-    LIST_ENTRY InLoadOrderModuleList;
-    LIST_ENTRY InMemoryOrderModuleList;
-    LIST_ENTRY InInitializationOrderModuleList;
-    PVOID EntryInProgress;
-} PEB_LDR_DATA_NT513, *PPEB_LDR_DATA_NT513;
+NTSYSAPI NTSTATUS NTAPI NtCreateDirectoryObject(
+    PHANDLE DirectoryHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
 
-typedef struct _PEB_NT513 {
-    BOOLEAN InheritedAddressSpace;
-    BOOLEAN ReadImageFileExecOptions;
-    BOOLEAN BeingDebugged;
-    BOOLEAN SpareBool;
-    HANDLE Mutant;
-    PVOID ImageBaseAddress;
-    PVOID Ldr; /* PPEB_LDR_DATA */
-    PVOID ProcessParameters; /* struct _RTL_USER_PROCESS_PARAMETERS * */
-    PVOID SubSystemData;
-    PVOID ProcessHeap;
-    PVOID FastPebLock;
-    PVOID FastPebLockRoutine;
-    PVOID FastPebUnlockRoutine;
-    ULONG EnvironmentUpdateCount;
-    PVOID KernelCallbackTable;
-    ULONG SystemReserved[1];
-    ULONG AtlThunkSListPtr32;
-    PVOID FreeList; /* PPEB_FREE_BLOCK */
-    ULONG TlsExpansionCounter;
-    PVOID TlsBitmap;
-    ULONG TlsBitmapBits[2];
-    PVOID ReadOnlySharedMemoryBase;
-    PVOID ReadOnlySharedMemoryHeap;
-    PVOID *ReadOnlyStaticServerData;
-    PVOID AnsiCodePageData;
-    PVOID OemCodePageData;
-    PVOID UnicodeCaseTableData;
-    ULONG NumberOfProcessors;
-    ULONG NtGlobalFlag;
-    LARGE_INTEGER CriticalSectionTimeout;
-    ULONG HeapSegmentReserve;
-    ULONG HeapSegmentCommit;
-    ULONG HeapDeCommitTotalFreeThreshold;
-    ULONG HeapDeCommitFreeBlockThreshold;
-    ULONG NumberOfHeaps;
-    ULONG MaximumNumberOfHeaps;
-    PVOID *ProcessHeaps;
-    PVOID GdiSharedHandleTable;
-    PVOID ProcessStarterHelper;
-    PVOID GdiDCAttributeList;
-    PVOID LoaderLock;
-    ULONG OSMajorVersion;
-    ULONG OSMinorVersion;
-    USHORT OSBuildNumber;
-    USHORT OSCSDVersion;
-    ULONG OSPlatformId;
-    ULONG ImageSubsystem;
-    ULONG ImageSubsystemMajorVersion;
-    ULONG ImageSubsystemMinorVersion;
-    ULONG ImageProcessAffinityMask;
-    ULONG GdiHandleBuffer[34];
-    PVOID PostProcessInitRoutine;
-    PVOID TlsExpansionBitmap;
-    ULONG TlsExpansionBitmapBits[32];
-    ULONG SessionId;
-    ULARGE_INTEGER AppCompatFlags;
-    ULARGE_INTEGER AppCompatFlagsUser;
-    PVOID pShimData;
-    PVOID AppCompatInfo;
-    UNICODE_STRING CSDVersion;
-    PVOID ActivationContextData;
-    PVOID ProcessAssemblyStorageMap;
-    PVOID SystemDefaultActivationContextData;
-    PVOID SystemAssemblyStorageMap;
-    ULONG MinimumStackCommit;
-} PEB_NT513, *PPEB_NT513;
+NTSYSAPI NTSTATUS NTAPI NtOpenDirectoryObject(
+    PHANDLE DirectoryHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryDirectoryObject(
+    HANDLE DirectoryHandle,
+    PVOID Buffer OPTIONAL,
+    ULONG Length,
+    BOOLEAN ReturnSingleEntry,
+    BOOLEAN RestartScan,
+    PULONG Context,
+    PULONG ReturnLength OPTIONAL);
+
+
+/******************************************************************
+ * Process API
+ *****************************************************************/
+
+/*
+ * Types
+ */
 
 typedef enum _PROCESS_INFORMATION_CLASS {
     ProcessBasicInformation = 0x0,
@@ -718,12 +670,13 @@ typedef enum _PROCESS_INFORMATION_CLASS {
     ProcessDebugObjectHandle = 0x1E,
     ProcessDebugFlags = 0x1F,
     ProcessHandleTracing = 0x20,
+    MaxProcessInfoClass_NT500 = 0x21,
+
     ProcessIoPriority = 0x21,
     ProcessExecuteFlags = 0x22,
     ProcessTlsInformation = 0x23,
     ProcessCookie = 0x24,
     ProcessImageInformation = 0x25,
-
     MaxProcessInfoClass_NT520 = 0x26,
 
     ProcessCycleTime = 0x26,
@@ -739,9 +692,16 @@ typedef enum _PROCESS_INFORMATION_CLASS {
     ProcessTokenVirtualizationEnabled = 0x30,
     ProcessConsoleHostProcess = 0x31,
     ProcessWindowInformation = 0x32,
-
     MaxProcessInfoClass_NT610 = 0x33,
 
+    ProcessHandleInformation = 0x33,
+    ProcessMitigationPolicy = 0x34,
+    ProcessDynamicFunctionTableInformation = 0x35,
+    ProcessHandleCheckingMode = 0x36,
+    ProcessKeepAliveCount = 0x37,
+    ProcessRevokeFileHandles = 0x38,
+    ProcessWorkingSetControl = 0x39,
+    MaxProcessInfoClass_NT620 = 0x3A,
 } PROCESS_INFORMATION_CLASS, *PPROCESS_INFORMATION_CLASS;
 
 /* ProcessBasicInformation */
@@ -789,6 +749,16 @@ struct _PROCESS_DEVICEMAP_INFORMATION_EX
 
 #define NtCurrentProcess() ((HANDLE)-1)
 
+NTSYSAPI NTSTATUS NTAPI NtCreateProcess(
+    PHANDLE ProcessHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    HANDLE ParentProcess,
+    BOOLEAN InheritObjectTable,
+    HANDLE SectionHandle,
+    HANDLE DebugPort,
+    HANDLE ExceptionPort);
+
 NTSYSAPI NTSTATUS NTAPI NtQueryInformationProcess(
     HANDLE ProcessHandle,
     PROCESS_INFORMATION_CLASS ProcessInformationClass,
@@ -814,121 +784,6 @@ NTSYSAPI NTSTATUS NTAPI NtTerminateProcess(
 /*
  * Types
  */
-
-typedef struct _ACTIVATION_CONTEXT_STACK {
-    ULONG Flags;
-    ULONG NextCookieSequenceNumber;
-    PVOID ActiveFrame;
-    LIST_ENTRY FrameListCache;
-} ACTIVATION_CONTEXT_STACK, *PACTIVATION_CONTEXT_STACK;
-
-typedef struct _GDI_TEB_BATCH {
-    ULONG Offset;
-    ULONG HDC;
-    ULONG Buffer[310];
-} GDI_TEB_BATCH, *PGDI_TEB_BATCH;
-
-typedef struct _TEB_ACTIVE_FRAME_CONTEXT {
-    ULONG Flags;
-    PVOID FrameName;
-} TEB_ACTIVE_FRAME_CONTEXT, *PTEB_ACTIVE_FRAME_CONTEXT;
-
-typedef struct _TEB_ACTIVE_FRAME {
-    ULONG Flags;
-    struct _TEB_ACTIVE_FRAME *Previous;
-    TEB_ACTIVE_FRAME_CONTEXT *Context;
-} TEB_ACTIVE_FRAME, *PTEB_ACTIVE_FRAME;
-
-/* Defined in winnt.h
-typedef struct _NT_TIB {
-    EXCEPTION_REGISTRATION_RECORD *ExceptionList;
-    PVOID StackBase;
-    PVOID StackLimit;
-    PVOID SubSystemTib;
-    union {
-        PVOID FiberData;
-        ULONG Version;
-    };
-    PVOID ArbitraryUserPointer;
-    _NT_TIB *Self;
-} NT_TIB, *PNT_TIB;
-*/
-
-typedef struct __declspec(align(4)) _Wx86ThreadState {
-    PUINT CallBx86Eip;
-    PVOID DeallocationCpu;
-    BOOLEAN UseKnownWx86Dll;
-    BOOLEAN OleStubInvoked;
-} Wx86ThreadState;
-
-typedef struct _TEB_NT513 {
-    NT_TIB NtTib;
-    PVOID EnvironmentPointer;
-    CLIENT_ID ClientId;
-    PVOID ActiveRpcHandle;
-    PVOID ThreadLocalStoragePointer;
-    PPEB_NT513 ProcessEnvironmentBlock;
-    ULONG LastErrorValue;
-    ULONG CountOfOwnedCriticalSections;
-    PVOID CsrClientThread;
-    PVOID Win32ThreadInfo;
-    ULONG User32Reserved[26];
-    ULONG UserReserved[5];
-    PVOID WOW32Reserved;
-    ULONG CurrentLocale;
-    ULONG FpSoftwareStatusRegister;
-    PVOID SystemReserved1[54];
-    UINT ExceptionCode;
-    ACTIVATION_CONTEXT_STACK ActivationContextStack;
-    BYTE SpareBytes1[24];
-    GDI_TEB_BATCH GdiTebBatch;
-    CLIENT_ID RealClientId;
-    PVOID GdiCachedProcessHandle;
-    ULONG GdiClientPID;
-    ULONG GdiClientTID;
-    PVOID GdiThreadLocalInfo;
-    ULONG Win32ClientInfo[62];
-    PVOID glDispatchTable[233];
-    ULONG glReserved1[29];
-    PVOID glReserved2;
-    PVOID glSectionInfo;
-    PVOID glSection;
-    PVOID glTable;
-    PVOID glCurrentRC;
-    PVOID glContext;
-    ULONG LastStatusValue;
-    UNICODE_STRING StaticUnicodeString;
-    USHORT StaticUnicodeBuffer[261];
-    PVOID DeallocationStack;
-    PVOID TlsSlots[64];
-    LIST_ENTRY TlsLinks;
-    PVOID Vdm;
-    PVOID ReservedForNtRpc;
-    PVOID DbgSsReserved[2];
-    ULONG HardErrorsAreDisabled;
-    PVOID Instrumentation[16];
-    PVOID WinSockData;
-    ULONG GdiBatchCount;
-    BOOLEAN InDbgPrint;
-    BOOLEAN FreeStackOnTermination;
-    BOOLEAN HasFiberData;
-    BYTE IdealProcessor;
-    ULONG Spare3;
-    PVOID ReservedForPerf;
-    PVOID ReservedForOle;
-    ULONG WaitingOnLoaderLock;
-    Wx86ThreadState Wx86Thread;
-    PVOID *TlsExpansionSlots;
-    ULONG ImpersonationLocale;
-    ULONG IsImpersonating;
-    PVOID NlsCache;
-    PVOID pShimData;
-    ULONG HeapVirtualAffinity;
-    PVOID CurrentTransactionHandle;
-    PTEB_ACTIVE_FRAME ActiveFrame;
-    BOOLEAN SafeThunkCall;
-    BOOLEAN BooleanSpare[3];
-} TEB_NT513, *PTEB_NT513;
 
 typedef struct _USER_STACK {
     PVOID FixedStackBase;
@@ -959,8 +814,9 @@ typedef enum _THREAD_INFORMATION_CLASS {        // Q/S
     ThreadIsIoPending = 0x10,                   // Y/N
     ThreadHideFromDebugger = 0x11,              // N/Y
     ThreadBreakOnTermination = 0x12,
-    ThreadSwitchLegacyState = 0x13,
+    MaxThreadInfoClass_NT500 = 0x13,
 
+    ThreadSwitchLegacyState = 0x13,
     MaxThreadInfoClass_NT520 = 0x14,
 
     ThreadIsTerminated = 0x14,
@@ -977,8 +833,10 @@ typedef enum _THREAD_INFORMATION_CLASS {        // Q/S
     ThreadUmsInformation = 0x1F,
     ThreadCounterProfiling = 0x20,
     ThreadIdealProcessorEx = 0x21,
-
     MaxThreadInfoClass_NT610 = 0x22,
+
+    ThreadCpuAccountingInformation = 0x22,
+    MaxThreadInfoClass_NT620 = 0x23,
 
 } THREAD_INFORMATION_CLASS, *PTHREAD_INFORMATION_CLASS;
 
@@ -1016,13 +874,23 @@ NTSYSAPI NTSTATUS NTAPI NtQueryInformationThread(
     ULONG ThreadInformationLength,
     PULONG ReturnLength);
 
+NTSYSAPI NTSTATUS NTAPI NtSetInformationThread(
+    HANDLE ThreadHandle,
+    THREAD_INFORMATION_CLASS ThreadInformationClass,
+    PVOID ThreadInformation,
+    ULONG ThreadInformationLength);
+
 NTSYSAPI NTSTATUS NTAPI NtGetContextThread(
     HANDLE ThreadHandle,
-    PCONTEXT pContext);
+    PCONTEXT ThreadContext);
 
 NTSYSAPI NTSTATUS NTAPI NtSetContextThread(
     HANDLE ThreadHandle,
-    PCONTEXT pContext);
+    PCONTEXT ThreadContext);
+
+NTSYSAPI NTSTATUS NTAPI NtContinue(
+    PCONTEXT ThreadContext,
+    BOOLEAN RaiseAlert);
 
 NTSYSAPI NTSTATUS NTAPI NtSuspendThread(
     HANDLE ThreadHandle,
@@ -1035,6 +903,29 @@ NTSYSAPI NTSTATUS NTAPI NtResumeThread(
 NTSYSAPI NTSTATUS NTAPI NtTerminateThread(
     HANDLE ThreadHandle,
     NTSTATUS ExitStatus);
+
+NTSYSAPI NTSTATUS NTAPI NtImpersonateThread(
+    HANDLE ThreadHandle,
+    HANDLE ThreadToImpersonate,
+    PSECURITY_QUALITY_OF_SERVICE SecurityQualityOfService);
+
+/*
+    This function alerts the target thread using the previous mode
+    as the mode of the alert.
+*/
+NTSYSAPI NTSTATUS NTAPI NtAlertThread(
+    HANDLE ThreadHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtAlertResumeThread(
+    HANDLE ThreadHandle,
+    PULONG PreviousSuspendCount);
+
+/*
+    This function tests the alert flag inside the current thread. If
+    an alert is pending for the previous mode, then the alerted status
+    is returned, pending APC's may also be delivered at this time.
+*/
+NTSYSAPI NTSTATUS NTAPI NtTestAlert(VOID);
 
 NTSYSAPI NTSTATUS NTAPI NtQueueApcThread(
     HANDLE ThreadHandle,
@@ -1051,6 +942,303 @@ NTSYSAPI NTSTATUS NTAPI NtQueueApcThreadEx(
     PVOID NormalContext,
     PVOID SystemArgument1,
     PVOID SystemArgument2);
+
+NTSYSAPI NTSTATUS NTAPI NtDelayExecution(
+    BOOLEAN Alertable,
+    PLARGE_INTEGER DelayInterval);
+
+NTSYSAPI NTSTATUS NTAPI NtYieldExecution(VOID);
+
+
+/******************************************************************
+ * Event API
+ *****************************************************************/
+
+/*
+ * Types
+ */
+
+typedef enum _EVENT_TYPE {
+    NotificationEvent = 0x0,
+    SynchronizationEvent = 0x1,
+} EVENT_TYPE;
+
+typedef enum _EVENT_INFORMATION_CLASS {
+    EventBasicInformation = 0x0,
+} EVENT_INFORMATION_CLASS;
+
+typedef struct _EVENT_BASIC_INFORMATION {
+    EVENT_TYPE EventType;
+    LONG EventState;
+} EVENT_BASIC_INFORMATION, *PEVENT_BASIC_INFORMATION;
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreateEvent(
+    PHANDLE EventHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    EVENT_TYPE EventType,
+    BOOLEAN InitialState);
+
+NTSYSAPI NTSTATUS NTAPI NtOpenEvent(
+    PHANDLE EventHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes );
+
+NTSYSAPI NTSTATUS NTAPI NtClearEvent(
+    HANDLE EventHandle );
+
+NTSYSAPI NTSTATUS NTAPI NtSetEvent(
+    HANDLE EventHandle,
+    PLONG PreviousState);
+
+NTSYSAPI NTSTATUS NTAPI NtResetEvent(
+    HANDLE EventHandle,
+    PLONG PreviousState);
+
+NTSYSAPI NTSTATUS NTAPI NtPulseEvent(
+    HANDLE EventHandle,
+    PLONG PreviousState);
+
+NTSYSAPI NTSTATUS NTAPI NtSetEventBoostPriority(
+    HANDLE EventHandle );
+
+NTSYSAPI NTSTATUS NTAPI NtQueryEvent(
+    HANDLE EventHandle,
+    EVENT_INFORMATION_CLASS EventInformationClass,
+    PVOID EventInformation,
+    ULONG EventInformationLength,
+    PULONG ReturnLength);
+
+
+/******************************************************************
+ * Event pair API
+ *****************************************************************/
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreateEventPair(
+    PHANDLE EventPairHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
+
+NTSYSAPI NTSTATUS NTAPI NtOpenEventPair(
+    PHANDLE EventPairHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
+
+NTSYSAPI NTSTATUS NTAPI NtSetHighEventPair(
+    HANDLE EventPairHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtSetHighWaitLowEventPair(
+    HANDLE EventPairHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtWaitLowEventPair(
+    HANDLE EventPairHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtSetLowEventPair(
+    HANDLE EventPairHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtSetLowWaitHighEventPair(
+    HANDLE EventPairHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtWaitHighEventPair(
+    HANDLE EventPairHandle);
+
+
+/******************************************************************
+ * Keyed event API
+ *****************************************************************/
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreateKeyedEvent(
+    PHANDLE KeyedEventHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    ULONG Flags);
+
+NTSYSAPI NTSTATUS NTAPI NtOpenKeyedEvent(
+    PHANDLE KeyedEventHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
+  
+NTSYSAPI NTSTATUS NTAPI NtReleaseKeyedEvent(
+    HANDLE KeyedEventHandle,
+    PVOID KeyValue,
+    BOOLEAN Alertable,
+    PLARGE_INTEGER Timeout OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtWaitForKeyedEvent(
+    HANDLE KeyedEventHandle,
+    PVOID KeyValue,
+    BOOLEAN Alertable,
+    PLARGE_INTEGER Timeout OPTIONAL);
+
+
+/******************************************************************
+ * Timer API
+ *****************************************************************/
+
+/*
+ * Types
+ */
+
+typedef enum _TIMER_TYPE {
+    NotificationTimer = 0x0,
+    SynchronizationTimer = 0x1,
+} TIMER_TYPE;
+
+typedef enum _TIMER_INFORMATION_CLASS {
+    TimerBasicInformation = 0x0,
+} TIMER_INFORMATION_CLASS;
+
+typedef struct _TIMER_BASIC_INFORMATION {
+    LARGE_INTEGER RemainingTime;
+    BOOLEAN TimerState;
+} TIMER_BASIC_INFORMATION, *PTIMER_BASIC_INFORMATION;
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreateTimer(
+    PHANDLE TimerHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    TIMER_TYPE TimerType);
+
+NTSYSAPI NTSTATUS NTAPI NtCreateTimer(
+    PHANDLE TimerHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
+
+NTSYSAPI NTSTATUS NTAPI NtSetTimer(
+    HANDLE TimerHandle,
+    PLARGE_INTEGER DueTime,
+    PTIMER_APC_ROUTINE TimerApcRoutine,
+    PVOID TimerContext,
+    BOOLEAN ResumeTimer,
+    LONG Period,
+    PBOOLEAN PreviousState);
+
+NTSYSAPI NTSTATUS NTAPI NtCancelTimer(
+    HANDLE TimerHandle,
+    PBOOLEAN CurrentState);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryTimer(
+    HANDLE TimerHandle,
+    TIMER_INFORMATION_CLASS TimerInformationClass,
+    PVOID TimerInformation,
+    ULONG TimerInformationLength,
+    PULONG ReturnLength);
+
+
+/******************************************************************
+ * Mutant API
+ *****************************************************************/
+
+/*
+ * Types
+ */
+
+typedef enum _MUTANT_INFORMATION_CLASS {
+    MutantBasicInformation = 0x0,
+} MUTANT_INFORMATION_CLASS;
+
+typedef struct _MUTANT_BASIC_INFORMATION {
+    LONG CurrentCount;
+    BOOLEAN OwnedByCaller;
+    BOOLEAN AbandonedState;
+} MUTANT_BASIC_INFORMATION, *PMUTANT_BASIC_INFORMATION;
+
+/*
+ * Functions
+ */
+
+/*
+    This function creates a mutant object, sets its initial count to one
+    (signaled), and opens a handle to the object with the specified desired
+    access.
+*/
+NTSYSAPI NTSTATUS NTAPI NtCreateMutant(
+    PHANDLE MutantHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    BOOLEAN InitialOwner);
+
+/*
+    This function opens a handle to a mutant object with the specified
+    desired access.
+*/
+NTSYSAPI NTSTATUS NTAPI NtOpenMutant(
+    PHANDLE MutantHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryMutant(
+    HANDLE MutantHandle,
+    MUTANT_INFORMATION_CLASS MutantInformationClass,
+    PVOID MutantInformation,
+    ULONG MutantInformationLength,
+    PULONG ResultLength);
+
+NTSYSAPI NTSTATUS NTAPI NtReleaseMutant(
+    HANDLE MutantHandle,
+    PLONG PreviousCount);
+
+
+/******************************************************************
+ * Semaphore API
+ *****************************************************************/
+
+/*
+ * Types
+ */
+
+typedef enum _SEMAPHORE_INFORMATION_CLASS {
+    SemaphoreBasicInformation = 0x0,
+} SEMAPHORE_INFORMATION_CLASS;
+
+typedef struct _SEMAPHORE_BASIC_INFORMATION {
+    LONG CurrentCount;
+    LONG MaximumCount;
+} SEMAPHORE_BASIC_INFORMATION, *PSEMAPHORE_BASIC_INFORMATION;
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreateSemaphore(
+    PHANDLE SemaphoreHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    ULONG InitialCount,
+    ULONG MaximumCount);
+
+NTSYSAPI NTSTATUS NTAPI NtOpenSemaphore(
+    PHANDLE SemaphoreHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
+
+NTSYSAPI NTSTATUS NTAPI NtReleaseSemaphore(
+    HANDLE SemaphoreHandle,
+    ULONG ReleaseCount,
+    PULONG PreviousCount);
+
+NTSYSAPI NTSTATUS NTAPI NtQuerySemaphore(
+    HANDLE SemaphoreHandle,
+    SEMAPHORE_INFORMATION_CLASS SemaphoreInformationClass,
+    PVOID SemaphoreInformation,
+    ULONG SemaphoreInformationLength,
+    PULONG ReturnLength);
 
 
 /******************************************************************
@@ -1180,8 +1368,8 @@ typedef struct _SECTION_IMAGE_INFORMATION {
     USHORT ImageCharacteristics;
     USHORT DllCharacteristics;
     USHORT Machine;
-    BOOL ImageContainsCode;
-    BOOL Spare1;
+    BOOLEAN ImageContainsCode;
+    BOOLEAN Spare1;
     ULONG LoaderFlags;
     ULONG ImageFileSize;
     ULONG Reserved[1];
@@ -1200,6 +1388,15 @@ NTSYSAPI NTSTATUS NTAPI NtCreateSection(
     ULONG AllocationAttributes,
     HANDLE FileHandle);
 
+NTSYSAPI NTSTATUS NTAPI NtOpenSection(
+    PHANDLE SectionHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
+
+NTSYSAPI NTSTATUS NTAPI NtExtendSection(
+    HANDLE SectionHandle,
+    PLARGE_INTEGER NewSectionSize);
+
 NTSYSAPI NTSTATUS NTAPI NtMapViewOfSection(
     HANDLE SectionHandle,
     HANDLE ProcessHandle,
@@ -1215,6 +1412,13 @@ NTSYSAPI NTSTATUS NTAPI NtMapViewOfSection(
 NTSYSAPI NTSTATUS NTAPI NtUnmapViewOfSection(
     HANDLE ProcessHandle,
     PVOID BaseAddress);
+
+NTSYSAPI NTSTATUS NTAPI NtQuerySection(
+    HANDLE SectionHandle,
+    SECTION_INFORMATION_CLASS InformationClass,
+    PVOID InformationBuffer,
+    ULONG InformationBufferSize,
+    PULONG ResultLength OPTIONAL);
 
 
 /******************************************************************
@@ -1267,6 +1471,8 @@ typedef enum _FILE_INFORMATION_CLASS {
     FileIdFullDirectoryInformation = 0x26,
     FileValidDataLengthInformation = 0x27,
     FileShortNameInformation = 0x28,
+    FileMaximumInformation_NT500 = 0x29,
+
     FileIoCompletionNotificationInformation = 0x29,
     FileIoStatusBlockRangeInformation = 0x2A,
     FileIoPriorityHintInformation = 0x2B,
@@ -1282,7 +1488,7 @@ typedef enum _FILE_INFORMATION_CLASS {
     FileNumaNodeInformation = 0x35,
     FileStandardLinkInformation = 0x36,
     FileRemoteProtocolInformation = 0x37,
-    FileMaximumInformation = 0x38,
+    FileMaximumInformation_NT610 = 0x38,
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
 /*
@@ -1303,6 +1509,38 @@ NTSYSAPI NTSTATUS NTAPI NtCreateFile(
     PVOID EaBuffer,
     ULONG EaLength);
 
+NTSYSAPI NTSTATUS NTAPI NtCreateMailslotFile(
+    PHANDLE MailslotFileHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    ULONG CreateOptions,
+    ULONG MailslotQuota,
+    ULONG MaxMessageSize,
+    PLARGE_INTEGER ReadTimeOut);
+
+NTSYSAPI NTSTATUS NTAPI NtCreateNamedPipeFile(
+    PHANDLE NamedPipeFileHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    ULONG ShareAccess,
+    ULONG CreateDisposition,
+    ULONG CreateOptions,
+    BOOLEAN WriteModeMessage,
+    BOOLEAN ReadModeMessage,
+    BOOLEAN NonBlocking,
+    ULONG MaxInstances,
+    ULONG InBufferSize,
+    ULONG OutBufferSize,
+    PLARGE_INTEGER DefaultTimeOut);
+
+NTSYSAPI NTSTATUS NTAPI NtCreatePagingFile(
+    PUNICODE_STRING PageFileName,
+    PLARGE_INTEGER MiniumSize,
+    PLARGE_INTEGER MaxiumSize,
+    PLARGE_INTEGER ActualSize OPTIONAL);
+
 /* http://msdn.microsoft.com/en-us/library/windows/hardware/ff567011%28v=vs.85%29.aspx */
 NTSYSAPI NTSTATUS NTAPI NtOpenFile(
     PHANDLE FileHandle,
@@ -1312,6 +1550,78 @@ NTSYSAPI NTSTATUS NTAPI NtOpenFile(
     ULONG ShareAccess,
     ULONG OpenOptions);
 
+NTSYSAPI NTSTATUS NTAPI NtLockFile(
+    HANDLE FileHandle,
+    HANDLE LockGrantedEvent OPTIONAL,
+    PIO_APC_ROUTINE ApcRoutine OPTIONAL,
+    PVOID ApcContext OPTIONAL,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    PLARGE_INTEGER ByteOffset,
+    PLARGE_INTEGER Length,
+    PULONG Key,
+    BOOLEAN ReturnImmediately,
+    BOOLEAN ExclusiveLock);
+
+NTSYSAPI NTSTATUS NTAPI NtUnlockFile(
+    HANDLE FileHandle,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    PLARGE_INTEGER ByteOffset,
+    PLARGE_INTEGER Length,
+    PULONG Key);
+
+NTSYSAPI NTSTATUS NTAPI NtReadFile(
+    HANDLE FileHandle,
+    HANDLE Event OPTIONAL,
+    PIO_APC_ROUTINE ApcRoutine OPTIONAL,
+    PVOID ApcContext OPTIONAL,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    PVOID Buffer,
+    ULONG Length,
+    PLARGE_INTEGER ByteOffset OPTIONAL,
+    PULONG Key OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtWriteFile(
+    HANDLE FileHandle,
+    HANDLE Event OPTIONAL,
+    PIO_APC_ROUTINE ApcRoutine OPTIONAL,
+    PVOID ApcContext OPTIONAL,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    PVOID Buffer,
+    ULONG Length,
+    PLARGE_INTEGER ByteOffset OPTIONAL,
+    PULONG Key OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtFlushBuffersFile(
+    HANDLE FileHandle,
+    PIO_STATUS_BLOCK IoStatusBlock);
+
+NTSYSAPI NTSTATUS NTAPI NtDeleteFile(
+    POBJECT_ATTRIBUTES ObjectAttributes);
+
+NTSYSAPI NTSTATUS NTAPI NtDeviceIoControlFile(
+    HANDLE FileHandle,
+    HANDLE Event OPTIONAL,
+    PIO_APC_ROUTINE UserApcRoutine OPTIONAL,
+    PVOID UserApcContext OPTIONAL,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    ULONG IoControlCode,
+    PVOID InputBuffer OPTIONAL,
+    ULONG InputBufferLength,
+    PVOID OutputBuffer OPTIONAL,
+    ULONG OutputBufferLength);
+
+NTSYSAPI NTSTATUS NTAPI NtFsControlFile(
+    HANDLE FileHandle,
+    HANDLE Event OPTIONAL,
+    PIO_APC_ROUTINE ApcRoutine OPTIONAL,
+    PVOID ApcContext OPTIONAL,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    ULONG FsControlCode,
+    PVOID InputBuffer OPTIONAL,
+    ULONG InputBufferLength,
+    PVOID OutputBuffer OPTIONAL,
+    ULONG OutputBufferLength);
+
 NTSYSAPI NTSTATUS NTAPI NtQueryInformationFile(
     HANDLE FileHandle,
     PIO_STATUS_BLOCK IoStatusBlock,
@@ -1319,17 +1629,244 @@ NTSYSAPI NTSTATUS NTAPI NtQueryInformationFile(
     ULONG Length,
     FILE_INFORMATION_CLASS FileInformationClass);
 
-NTSYSAPI NTSTATUS NTAPI NtDeviceIoControlFile(
-    HANDLE DeviceHandle,
-    HANDLE Event,
-    PIO_APC_ROUTINE UserApcRoutine,
-    PVOID UserApcContext,
-    PIO_STATUS_BLOCK IoStatusBlock,
-    ULONG IoControlCode,
-    PVOID InputBuffer,
-    ULONG InputBufferLength,
-    PVOID OutputBuffer,
-    ULONG OutputBufferLength);
+
+/******************************************************************
+ * Symbolic link API
+ *****************************************************************/
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreateSymbolicLinkObject(
+    PHANDLE LinkHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    PUNICODE_STRING LinkTarget);
+
+NTSYSAPI NTSTATUS NTAPI NtOpenSymbolicLinkObject(
+    PHANDLE LinkHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
+
+NTSYSAPI NTSTATUS NTAPI NtQuerySymbolicLinkObject(
+    HANDLE LinkHandle,
+    PUNICODE_STRING LinkTarget,
+    PULONG ReturnedLength OPTIONAL);
+
+
+/******************************************************************
+ * Security API
+ *****************************************************************/
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtQuerySecurityObject(
+    HANDLE ObjectHandle,
+    SECURITY_INFORMATION SecurityInformationClass,
+    PSECURITY_DESCRIPTOR DescriptorBuffer,
+    ULONG DescriptorBufferLength,
+    PULONG RequiredLength);
+
+NTSYSAPI NTSTATUS NTAPI NtSetSecurityObject(
+    HANDLE ObjectHandle,
+    SECURITY_INFORMATION SecurityInformationClass,
+    PSECURITY_DESCRIPTOR DescriptorBuffer);
+
+
+/******************************************************************
+ * Security token API
+ *****************************************************************/
+
+/*
+ * Types
+ */
+
+typedef struct _ACL {
+    CHAR AclRevision;
+    CHAR Sbz1;
+    USHORT AclSize;
+    USHORT AceCount;
+    USHORT Sbz2;
+} ACL, *PACL;
+
+typedef struct _SID_IDENTIFIER_AUTHORITY {
+    CHAR Value[6];
+} SID_IDENTIFIER_AUTHORITY, *PSID_IDENTIFIER_AUTHORITY;
+
+typedef struct _SID {
+    CHAR Revision;
+    CHAR SubAuthorityCount;
+    SID_IDENTIFIER_AUTHORITY IdentifierAuthority;
+    ULONG SubAuthority[1];
+} SID, *PSID;
+
+typedef struct _SID_AND_ATTRIBUTES {
+    PVOID Sid;
+    ULONG Attributes;
+} SID_AND_ATTRIBUTES, *PSID_AND_ATTRIBUTES;
+
+typedef struct _LUID_AND_ATTRIBUTES {
+    LUID Luid;
+    ULONG Attributes;
+} LUID_AND_ATTRIBUTES;
+
+typedef struct _TOKEN_OWNER {
+    PVOID Owner;
+} TOKEN_OWNER;
+
+typedef struct _TOKEN_PRIVILEGES {
+    ULONG PrivilegeCount;
+    LUID_AND_ATTRIBUTES Privileges[1];
+} TOKEN_PRIVILEGES, *PTOKEN_PRIVILEGES;
+
+typedef struct _TOKEN_PRIMARY_GROUP {
+    PVOID PrimaryGroup;
+} TOKEN_PRIMARY_GROUP, *PTOKEN_PRIMARY_GROUP;
+
+typedef struct _TOKEN_GROUPS {
+    ULONG GroupCount;
+    SID_AND_ATTRIBUTES Groups[1];
+} TOKEN_GROUPS, *PTOKEN_GROUPS;
+
+typedef struct _TOKEN_DEFAULT_DACL {
+    ACL *DefaultDacl;
+} TOKEN_DEFAULT_DACL, *PTOKEN_DEFAULT_DACL;
+
+typedef struct _TOKEN_USER {
+    SID_AND_ATTRIBUTES User;
+} TOKEN_USER, *PTOKEN_USER;
+
+typedef struct _TOKEN_SOURCE {
+    CHAR SourceName[8];
+    LUID SourceIdentifier;
+} TOKEN_SOURCE, *PTOKEN_SOURCE;
+
+typedef enum _TOKEN_INFORMATION_CLASS {
+    TokenUser = 1,
+    TokenGroups,
+    TokenPrivileges,
+    TokenOwner,
+    TokenPrimaryGroup,
+    TokenDefaultDacl,
+    TokenSource,
+    TokenType,
+    TokenImpersonationLevel,
+    TokenStatistics,
+    TokenRestrictedSids,
+    TokenSessionId,
+    TokenGroupsAndPrivileges,
+    TokenSessionReference,
+    TokenSandBoxInert,
+    TokenAuditPolicy,
+    TokenOrigin,
+    TokenElevationType,
+    TokenLinkedToken,
+    TokenElevation,
+    TokenHasRestrictions,
+    TokenAccessInformation,
+    TokenVirtualizationAllowed,
+    TokenVirtualizationEnabled,
+    TokenIntegrityLevel,
+    TokenUIAccess,
+    TokenMandatoryPolicy,
+    TokenLogonSid,
+    TokenIsAppContainer,
+    TokenCapabilities,
+    TokenAppContainerSid,
+    TokenAppContainerNumber,
+    TokenUserClaimAttributes,
+    TokenDeviceClaimAttributes,
+    TokenRestrictedUserClaimAttributes,
+    TokenRestrictedDeviceClaimAttributes,
+    TokenDeviceGroups,
+    TokenRestrictedDeviceGroups,
+    TokenSecurityAttributes,
+    TokenIsRestricted,
+    MaxTokenInfoClass
+} TOKEN_INFORMATION_CLASS, *PTOKEN_INFORMATION_CLASS;
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreateToken(
+    PHANDLE TokenHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    TOKEN_TYPE TokenType,
+    PLUID AuthenticationId,
+    PLARGE_INTEGER ExpirationTime,
+    PTOKEN_USER TokenUser,
+    PTOKEN_GROUPS TokenGroups,
+    PTOKEN_PRIVILEGES TokenPrivileges,
+    PTOKEN_OWNER TokenOwner,
+    PTOKEN_PRIMARY_GROUP TokenPrimaryGroup,
+    PTOKEN_DEFAULT_DACL TokenDefaultDacl,
+    PTOKEN_SOURCE TokenSource);
+
+NTSYSAPI NTSTATUS NTAPI NtDuplicateToken(
+    HANDLE ExistingToken,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    SECURITY_IMPERSONATION_LEVEL ImpersonationLevel,
+    TOKEN_TYPE TokenType,
+    PHANDLE NewToken );
+
+NTSYSAPI NTSTATUS NTAPI NtOpenProcessToken(
+    HANDLE ProcessHandle,
+    ACCESS_MASK DesiredAccess,
+    PHANDLE TokenHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtOpenThreadToken(
+    HANDLE ThreadHandle,
+    ACCESS_MASK DesiredAccess,
+    BOOLEAN OpenAsSelf,
+    PHANDLE TokenHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtAdjustGroupsToken(
+    HANDLE TokenHandle,
+    BOOLEAN ResetToDefault,
+    PTOKEN_GROUPS TokenGroups,
+    ULONG PreviousGroupsLength,
+    PTOKEN_GROUPS PreviousGroups OPTIONAL,
+    PULONG RequiredLength OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtAdjustPrivilegesToken(
+    HANDLE TokenHandle,
+    BOOLEAN DisableAllPrivileges,
+    PTOKEN_PRIVILEGES TokenPrivileges,
+    ULONG PreviousPrivilegesLength,
+    PTOKEN_PRIVILEGES PreviousPrivileges OPTIONAL,
+    PULONG RequiredLength OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryInformationToken(
+    HANDLE TokenHandle,
+    TOKEN_INFORMATION_CLASS TokenInformationClass,
+    PVOID TokenInformation,
+    ULONG TokenInformationLength,
+    PULONG ReturnLength);
+
+NTSYSAPI NTSTATUS NTAPI NtSetInformationToken(
+    HANDLE TokenHandle,
+    TOKEN_INFORMATION_CLASS TokenInformationClass,
+    PVOID TokenInformation,
+    ULONG TokenInformationLength);
+
+NTSYSAPI NTSTATUS NTAPI NtPrivilegeCheck(
+    HANDLE TokenHandle,
+    PPRIVILEGE_SET RequiredPrivileges,
+    PBOOLEAN Result);
+
+NTSYSAPI NTSTATUS NTAPI NtAllocateLocallyUniqueId(
+    PLUID LocallyUniqueId);
+
+NTSYSAPI NTSTATUS NTAPI NtAllocateUuids(
+    PLARGE_INTEGER Time,
+    PULONG Range,
+    PULONG Sequence);
 
 
 /******************************************************************
@@ -1465,7 +2002,94 @@ NTSYSAPI NTSTATUS NTAPI NtRemoveProcessDebug(
 
 
 /******************************************************************
- * Local procedure calls API
+ * System debugger API
+ *****************************************************************/
+
+/*
+ * Types
+ */
+
+typedef enum _SYSDBG_COMMAND {
+    SysDbgQueryModuleInformation = 0x0,
+    SysDbgQueryTraceInformation = 0x1,
+    SysDbgSetTracepoint = 0x2,
+    SysDbgSetSpecialCall = 0x3,
+    SysDbgClearSpecialCalls = 0x4,
+    SysDbgQuerySpecialCalls = 0x5,
+    SysDbgBreakPoint = 0x6,
+    SysDbgQueryVersion = 0x7,
+    SysDbgReadVirtual = 0x8,
+    SysDbgWriteVirtual = 0x9,
+    SysDbgReadPhysical = 0xA,
+    SysDbgWritePhysical = 0xB,
+    SysDbgReadControlSpace = 0xC,
+    SysDbgWriteControlSpace = 0xD,
+    SysDbgReadIoSpace = 0xE,
+    SysDbgWriteIoSpace = 0xF,
+    SysDbgReadMsr = 0x10,
+    SysDbgWriteMsr = 0x11,
+    SysDbgReadBusData = 0x12,
+    SysDbgWriteBusData = 0x13,
+    SysDbgCheckLowMemory = 0x14,
+    SysDbgEnableKernelDebugger = 0x15,
+    SysDbgDisableKernelDebugger = 0x16,
+    SysDbgGetAutoKdEnable = 0x17,
+    SysDbgSetAutoKdEnable = 0x18,
+    SysDbgGetPrintBufferSize = 0x19,
+    SysDbgSetPrintBufferSize = 0x1A,
+    SysDbgGetKdUmExceptionEnable = 0x1B,
+    SysDbgSetKdUmExceptionEnable = 0x1C,
+    /* NT 5.0.0 ends */
+    SysDbgGetTriageDump = 0x1D,
+    SysDbgGetKdBlockEnable = 0x1E,
+    SysDbgSetKdBlockEnable = 0x1F,
+    /* NT 5.2.0 ends */
+} SYSDBG_COMMAND;
+
+typedef struct _SYSDBG_PHYSICAL {
+    LARGE_INTEGER Address;
+    PVOID Buffer;
+    ULONG Request;
+} SYSDBG_PHYSICAL, *PSYSDBG_PHYSICAL;
+
+typedef struct _SYSDBG_VIRTUAL {
+    UINT_PTR Address;
+    PVOID Buffer;
+    ULONG Request;
+} SYSDBG_VIRTUAL, *PSYSDBG_VIRTUAL;
+
+typedef struct _SYSDBG_MSR {
+    ULONG Msr;
+    ULONGLONG Data;
+} SYSDBG_MSR, *PSYSDBG_MSR;
+
+typedef struct _SYSDBG_TRIAGE_DUMP {
+    ULONG Flags;
+    ULONG BugCheckCode;
+    ULONG_PTR BugCheckParam1;
+    ULONG_PTR BugCheckParam2;
+    ULONG_PTR BugCheckParam3;
+    ULONG_PTR BugCheckParam4;
+    ULONG ProcessHandles;
+    ULONG ThreadHandles;
+    PHANDLE Handles;
+} SYSDBG_TRIAGE_DUMP, *PSYSDBG_TRIAGE_DUMP;
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtSystemDebugControl(
+    SYSDBG_COMMAND Command,
+    PVOID InputBuffer,
+    ULONG InputBufferLength,
+    PVOID OutputBuffer,
+    ULONG OutputBufferLength,
+    PULONG ReturnLength);
+
+
+/******************************************************************
+ * Port API
  *****************************************************************/
 
 /*
@@ -1611,13 +2235,46 @@ NTSYSAPI NTSTATUS NTAPI NtAllocateReserveObject(
     POBJECT_ATTRIBUTES ObjectAttributes,
     ULONG ObjectType);
 
+
+/******************************************************************
+ * Input/Output Completion API
+ *****************************************************************/
+
+/*
+ * Types
+ */
+
+typedef enum _IO_COMPLETION_INFORMATION_CLASS {
+    IoCompletionBasicInformation = 0x0,
+} IO_COMPLETION_INFORMATION_CLASS;
+
+typedef struct _IO_COMPLETION_BASIC_INFORMATION {
+    LONG Depth;
+} IO_COMPLETION_BASIC_INFORMATION, *PIO_COMPLETION_BASIC_INFORMATION;
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreateIoCompletion(
+    PHANDLE IoCompletionHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    ULONG NumberOfConcurrentThreads);
+
+NTSYSAPI NTSTATUS NTAPI NtOpenIoCompletion(
+    PHANDLE IoCompletionHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
+
 NTSYSAPI NTSTATUS NTAPI NtSetIoCompletion(
     HANDLE IoCompletionHandle,
-    PVOID CompletionKey,
-    PVOID CompletionContext,
+    ULONG CompletionKey,
+    PIO_STATUS_BLOCK IoStatusBlock,
     NTSTATUS CompletionStatus,
-    ULONG CompletionInformation);
+    ULONG NumberOfBytesTransfered);
 
+/* Since: NT 6.1 */
 NTSYSAPI NTSTATUS NTAPI NtSetIoCompletionEx(
     HANDLE IoCompletionHandle,
     HANDLE ReserveHandle,
@@ -1626,9 +2283,89 @@ NTSYSAPI NTSTATUS NTAPI NtSetIoCompletionEx(
     NTSTATUS CompletionStatus,
     ULONG CompletionInformation);
 
+NTSYSAPI NTSTATUS NTAPI NtRemoveIoCompletion(
+    HANDLE IoCompletionHandle,
+    PULONG CompletionKey,
+    PULONG CompletionValue,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    PLARGE_INTEGER Timeout OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryIoCompletion(
+    HANDLE IoCompletionHandle,
+    IO_COMPLETION_INFORMATION_CLASS InformationClass,
+    PVOID IoCompletionInformation,
+    ULONG InformationBufferLength,
+    PULONG RequiredLength OPTIONAL);
+
 
 /******************************************************************
- * Input/Output Manager API
+ * Profile API
+ *****************************************************************/
+
+/*
+ * Types
+ */
+
+typedef enum _KPROFILE_SOURCE {
+    ProfileTime = 0x0,
+    ProfileAlignmentFixup = 0x1,
+    ProfileTotalIssues = 0x2,
+    ProfilePipelineDry = 0x3,
+    ProfileLoadInstructions = 0x4,
+    ProfilePipelineFrozen = 0x5,
+    ProfileBranchInstructions = 0x6,
+    ProfileTotalNonissues = 0x7,
+    ProfileDcacheMisses = 0x8,
+    ProfileIcacheMisses = 0x9,
+    ProfileCacheMisses = 0xA,
+    ProfileBranchMispredictions = 0xB,
+    ProfileStoreInstructions = 0xC,
+    ProfileFpInstructions = 0xD,
+    ProfileIntegerInstructions = 0xE,
+    Profile2Issue = 0xF,
+    Profile3Issue = 0x10,
+    Profile4Issue = 0x11,
+    ProfileSpecialInstructions = 0x12,
+    ProfileTotalCycles = 0x13,
+    ProfileIcacheIssues = 0x14,
+    ProfileDcacheAccesses = 0x15,
+    ProfileMemoryBarrierCycles = 0x16,
+    ProfileLoadLinkedIssues = 0x17,
+    ProfileMaximum = 0x18,
+} KPROFILE_SOURCE;
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreateProfile(
+    PHANDLE ProfileHandle,
+    HANDLE Process OPTIONAL,
+    PVOID ImageBase,
+    ULONG ImageSize,
+    ULONG BucketSize,
+    PVOID Buffer,
+    ULONG BufferSize,
+    KPROFILE_SOURCE ProfileSource,
+    KAFFINITY Affinity);
+
+NTSYSAPI NTSTATUS NTAPI NtStartProfile(
+    HANDLE ProfileHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtStopProfile(
+    HANDLE ProfileHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtSetIntervalProfile(
+    ULONG Interval,
+    KPROFILE_SOURCE Source);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryIntervalProfile(
+    KPROFILE_SOURCE ProfileSource,
+    PULONG Interval);
+
+
+/******************************************************************
+ * C runtime API
  *****************************************************************/
 
 int vsprintf(
