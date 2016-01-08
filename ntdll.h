@@ -606,6 +606,37 @@ NTSYSAPI NTSTATUS NTAPI NtSetSystemInformation(
     PVOID SystemInformation,
     ULONG SystemInformationLength);
 
+/* INCOMPLETE SIGNATURE */
+/* Since: NT 5.1 */
+NTSYSAPI NTSTATUS NTAPI NtEnumerateSystemEnvironmentValuesEx(
+    ULONG InformationClass,
+    PVOID Buffer,
+    ULONG BufferLength);
+
+NTSYSAPI NTSTATUS NTAPI NtQuerySystemEnvironmentValue(
+    PUNICODE_STRING VariableName,
+    PWSTR ValueBuffer,
+    ULONG ValueBufferLength,
+    PULONG ReturnLength OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtQuerySystemEnvironmentValueEx(
+    PUNICODE_STRING VariableName,
+    LPGUID VendorGuid,
+    PVOID Value,
+    PULONG ReturnLength,
+    PULONG Attributes);
+
+NTSYSAPI NTSTATUS NTAPI NtSetSystemEnvironmentValue(
+    PUNICODE_STRING VariableName,
+    PUNICODE_STRING Value);
+
+NTSYSAPI NTSTATUS NTAPI NtSetSystemEnvironmentValueEx(
+    PUNICODE_STRING VariableName,
+    LPGUID VendorGuid,
+    PVOID Value,
+    PULONG ReturnLength,
+    PULONG Attributes);
+
 
 /******************************************************************
  * Directory API
