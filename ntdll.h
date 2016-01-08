@@ -76,32 +76,17 @@ typedef struct _IO_COUNTERS {
 #endif
 
 typedef struct _VM_COUNTERS {
-#ifdef _WIN64
-// the following was inferred by painful reverse engineering
-	SIZE_T		   PeakVirtualSize;	// not actually
-    SIZE_T         PageFaultCount;
-    SIZE_T         PeakWorkingSetSize;
-    SIZE_T         WorkingSetSize;
-    SIZE_T         QuotaPeakPagedPoolUsage;
-    SIZE_T         QuotaPagedPoolUsage;
-    SIZE_T         QuotaPeakNonPagedPoolUsage;
-    SIZE_T         QuotaNonPagedPoolUsage;
-    SIZE_T         PagefileUsage;
-    SIZE_T         PeakPagefileUsage;
-    SIZE_T         VirtualSize;		// not actually
-#else
-    SIZE_T         PeakVirtualSize;
-    SIZE_T         VirtualSize;
-    ULONG          PageFaultCount;
-    SIZE_T         PeakWorkingSetSize;
-    SIZE_T         WorkingSetSize;
-    SIZE_T         QuotaPeakPagedPoolUsage;
-    SIZE_T         QuotaPagedPoolUsage;
-    SIZE_T         QuotaPeakNonPagedPoolUsage;
-    SIZE_T         QuotaNonPagedPoolUsage;
-    SIZE_T         PagefileUsage;
-    SIZE_T         PeakPagefileUsage;
-#endif
+    SIZE_T PeakVirtualSize;
+    SIZE_T VirtualSize;
+    ULONG PageFaultCount;
+    SIZE_T PeakWorkingSetSize;
+    SIZE_T WorkingSetSize;
+    SIZE_T QuotaPeakPagedPoolUsage;
+    SIZE_T QuotaPagedPoolUsage;
+    SIZE_T QuotaPeakNonPagedPoolUsage;
+    SIZE_T QuotaNonPagedPoolUsage;
+    SIZE_T PagefileUsage;
+    SIZE_T PeakPagefileUsage;
 } VM_COUNTERS;
 
 typedef struct _VM_COUNTERS_EX {
@@ -120,8 +105,7 @@ typedef struct _VM_COUNTERS_EX {
 } VM_COUNTERS_EX;
 
 
-typedef struct _KAPC KAPC;
-typedef KAPC *PKAPC;
+typedef struct _KAPC KAPC, *PKAPC;
 
 typedef VOID (NTAPI *PKNORMAL_ROUTINE)(
     PVOID NormalContext,
@@ -779,9 +763,26 @@ NTSYSAPI NTSTATUS NTAPI NtCreateProcess(
     POBJECT_ATTRIBUTES ObjectAttributes,
     HANDLE ParentProcess,
     BOOLEAN InheritObjectTable,
-    HANDLE SectionHandle,
-    HANDLE DebugPort,
-    HANDLE ExceptionPort);
+    HANDLE SectionHandle OPTIONAL,
+    HANDLE DebugPort OPTIONAL,
+    HANDLE ExceptionPort OPTIONAL);
+
+/* Since: NT 5.1 */
+NTSYSAPI NTSTATUS NTAPI NtCreateProcessEx(
+    PHANDLE ProcessHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    HANDLE InheritFromProcessHandle,
+    BOOLEAN InheritHandles,
+    HANDLE SectionHandle OPTIONAL,
+    HANDLE DebugPort OPTIONAL,
+    HANDLE ExceptionPort OPTIONAL,
+    BOOLEAN InJob);
+
+/* Since: NT 5.1 */
+NTSYSAPI NTSTATUS NTAPI NtIsProcessInJob(
+    HANDLE ProcessHandle,
+    HANDLE JobHandle);
 
 NTSYSAPI NTSTATUS NTAPI NtQueryInformationProcess(
     HANDLE ProcessHandle,
@@ -975,6 +976,71 @@ NTSYSAPI NTSTATUS NTAPI NtYieldExecution(VOID);
 
 
 /******************************************************************
+ * Job API
+ *****************************************************************/
+
+/* Since: NT 5.1 */
+
+/*
+ * Types
+ */
+
+typedef enum _JOBOBJECTINFOCLASS {
+    JobObjectBasicAccountingInformation = 1,
+    JobObjectBasicLimitInformation,
+    JobObjectBasicProcessIdList,
+    JobObjectBasicUIRestrictions,
+    JobObjectSecurityLimitInformation,
+    JobObjectEndOfJobTimeInformation,
+    JobObjectAssociateCompletionPortInformation,
+    JobObjectBasicAndIoAccountingInformation,
+    JobObjectExtendedLimitInformation,
+    JobObjectJobSetInformation,
+    MaxJobObjectInfoClass,
+} JOBOBJECTINFOCLASS;
+
+typedef struct _JOB_SET_ARRAY {
+    HANDLE JobHandle;
+    ULONG MemberLevel;
+    ULONG Flags;
+} JOB_SET_ARRAY, *PJOB_SET_ARRAY;
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreateJobObject(
+    PHANDLE JobHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtCreateJobSet(
+    ULONG NumJob,
+    PJOB_SET_ARRAY UserJobSet,
+    ULONG Flags);
+
+NTSYSAPI NTSTATUS NTAPI NtOpenJobObject(
+    PHANDLE JobHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
+
+NTSYSAPI NTSTATUS NTAPI NtAssignProcessToJobObject(
+    HANDLE JobHandle,
+    HANDLE ProcessHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtTerminateJobObject(
+    HANDLE JobHandle,
+    NTSTATUS ExitStatus);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryInformationJobObject(
+    HANDLE JobHandle,
+    JOBOBJECTINFOCLASS JobInformationClass,
+    PVOID JobInformation,
+    ULONG JobInformationLength,
+    PULONG ReturnLength);
+
+
+/******************************************************************
  * Event API
  *****************************************************************/
 
@@ -1093,7 +1159,7 @@ NTSYSAPI NTSTATUS NTAPI NtOpenKeyedEvent(
     PHANDLE KeyedEventHandle,
     ACCESS_MASK DesiredAccess,
     POBJECT_ATTRIBUTES ObjectAttributes);
-  
+
 NTSYSAPI NTSTATUS NTAPI NtReleaseKeyedEvent(
     HANDLE KeyedEventHandle,
     PVOID KeyValue,
@@ -1266,6 +1332,313 @@ NTSYSAPI NTSTATUS NTAPI NtQuerySemaphore(
 
 
 /******************************************************************
+ * Key API
+ *****************************************************************/
+
+/*
+ * Types
+ */
+
+typedef enum _KEY_INFORMATION_CLASS {
+    KeyBasicInformation = 0x0,
+    KeyNodeInformation = 0x1,
+    KeyFullInformation = 0x2,
+    KeyNameInformation = 0x3,
+    KeyCachedInformation = 0x4,
+    KeyFlagsInformation = 0x5,
+    MaxKeyInfoClass = 0x6,
+} KEY_INFORMATION_CLASS;
+
+typedef struct _KEY_BASIC_INFORMATION {
+    LARGE_INTEGER LastWriteTime;
+    ULONG TitleIndex;
+    ULONG NameLength;
+    WCHAR Name[1];
+} KEY_BASIC_INFORMATION, *PKEY_BASIC_INFORMATION;
+
+typedef struct _KEY_NODE_INFORMATION {
+    LARGE_INTEGER LastWriteTime;
+    ULONG TitleIndex;
+    ULONG ClassOffset;
+    ULONG ClassLength;
+    ULONG NameLength;
+    WCHAR Name[1];
+} KEY_NODE_INFORMATION, *PKEY_NODE_INFORMATION;
+
+typedef struct _KEY_FULL_INFORMATION {
+    LARGE_INTEGER LastWriteTime;
+    ULONG TitleIndex;
+    ULONG ClassOffset;
+    ULONG ClassLength;
+    ULONG SubKeys;
+    ULONG MaxNameLen;
+    ULONG MaxClassLen;
+    ULONG Values;
+    ULONG MaxValueNameLen;
+    ULONG MaxValueDataLen;
+    WCHAR Class[1];
+} KEY_FULL_INFORMATION, *PKEY_FULL_INFORMATION;
+
+typedef struct __declspec(align(4)) _KEY_NAME_INFORMATION {
+    ULONG NameLength;
+    WCHAR Name[1];
+} KEY_NAME_INFORMATION, *PKEY_NAME_INFORMATION;
+
+typedef struct _KEY_CACHED_INFORMATION {
+    LARGE_INTEGER LastWriteTime;
+    ULONG TitleIndex;
+    ULONG SubKeys;
+    ULONG MaxNameLen;
+    ULONG Values;
+    ULONG MaxValueNameLen;
+    ULONG MaxValueDataLen;
+    ULONG NameLength;
+    WCHAR Name[1];
+} KEY_CACHED_INFORMATION, *PKEY_CACHED_INFORMATION;
+
+typedef struct _KEY_FLAGS_INFORMATION {
+    ULONG UserFlags;
+} KEY_FLAGS_INFORMATION, *PKEY_FLAGS_INFORMATION;
+
+typedef enum _KEY_SET_INFORMATION_CLASS {
+    KeyWriteTimeInformation = 0x0,
+    KeyUserFlagsInformation = 0x1,
+    MaxKeySetInfoClass = 0x2,
+} KEY_SET_INFORMATION_CLASS;
+
+typedef struct _KEY_WRITE_TIME_INFORMATION {
+    LARGE_INTEGER LastWriteTime;
+} KEY_WRITE_TIME_INFORMATION, *PKEY_WRITE_TIME_INFORMATION;
+
+typedef struct _KEY_USER_FLAGS_INFORMATION {
+    ULONG UserFlags;
+} KEY_USER_FLAGS_INFORMATION, *PKEY_USER_FLAGS_INFORMATION;
+
+typedef enum _KEY_VALUE_INFORMATION_CLASS {
+    KeyValueBasicInformation = 0x0,
+    KeyValueFullInformation = 0x1,
+    KeyValuePartialInformation = 0x2,
+    KeyValueFullInformationAlign64 = 0x3,
+    KeyValuePartialInformationAlign64 = 0x4,
+    MaxKeyValueInfoClass = 0x5,
+} KEY_VALUE_INFORMATION_CLASS;
+
+/* KeyValueBasicInformation */
+
+typedef struct _KEY_VALUE_BASIC_INFORMATION {
+    ULONG TitleIndex;
+    ULONG Type;
+    ULONG NameLength;
+    WCHAR Name[1];
+} KEY_VALUE_BASIC_INFORMATION, *PKEY_VALUE_BASIC_INFORMATION;
+
+/* KeyValueFullInformation */
+
+typedef struct _KEY_VALUE_FULL_INFORMATION {
+    ULONG TitleIndex;
+    ULONG Type;
+    ULONG DataOffset;
+    ULONG DataLength;
+    ULONG NameLength;
+    WCHAR Name[1];
+} KEY_VALUE_FULL_INFORMATION, *PKEY_VALUE_FULL_INFORMATION;
+
+/* KeyValuePartialInformation */
+
+typedef struct _KEY_VALUE_PARTIAL_INFORMATION {
+    ULONG TitleIndex;
+    ULONG Type;
+    ULONG DataLength;
+    BYTE Data[1];
+} KEY_VALUE_PARTIAL_INFORMATION, *PKEY_VALUE_PARTIAL_INFORMATION;
+
+typedef struct _KEY_VALUE_ENTRY {
+    PUNICODE_STRING ValueName;
+    ULONG DataLength;
+    ULONG DataOffset;
+    ULONG Type;
+} KEY_VALUE_ENTRY, *PKEY_VALUE_ENTRY;
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreateKey(
+    PHANDLE KeyHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    ULONG TitleIndex,
+    PUNICODE_STRING Class OPTIONAL,
+    ULONG CreateOptions,
+    PULONG Disposition OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtOpenKey(
+    PHANDLE KeyHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes);
+
+NTSYSAPI NTSTATUS NTAPI NtRenameKey(
+    HANDLE KeyHandle,
+    PUNICODE_STRING NewName);
+
+NTSYSAPI NTSTATUS NTAPI NtFlushKey(
+    HANDLE KeyHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtDeleteKey(
+    HANDLE KeyHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtEnumerateKey(
+    HANDLE KeyHandle,
+    ULONG Index,
+    KEY_INFORMATION_CLASS KeyInformationClass,
+    PVOID KeyInformation,
+    ULONG Length,
+    PULONG ResultLength);
+
+NTSYSAPI NTSTATUS NTAPI NtLockRegistryKey(
+    HANDLE KeyHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtNotifyChangeKey(
+    HANDLE KeyHandle,
+    HANDLE Event OPTIONAL,
+    PIO_APC_ROUTINE ApcRoutine OPTIONAL,
+    PVOID ApcContext OPTIONAL,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    ULONG CompletionFilter,
+    BOOLEAN WatchTree,
+    PVOID Buffer,
+    ULONG BufferSize,
+    BOOLEAN Asynchronous);
+
+NTSYSAPI NTSTATUS NTAPI NtNotifyChangeMultipleKeys(
+    HANDLE MasterKeyHandle,
+    ULONG Count OPTIONAL,
+    OBJECT_ATTRIBUTES SlaveObjects[] OPTIONAL,
+    HANDLE Event OPTIONAL,
+    PIO_APC_ROUTINE ApcRoutine OPTIONAL,
+    PVOID ApcContext OPTIONAL,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    ULONG CompletionFilter,
+    BOOLEAN WatchTree,
+    PVOID Buffer OPTIONAL,
+    ULONG BufferSize,
+    BOOLEAN Asynchronous);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryKey(
+    HANDLE KeyHandle,
+    KEY_INFORMATION_CLASS KeyInformationClass,
+    PVOID KeyInformation,
+    ULONG Length,
+    PULONG ResultLength);
+
+NTSYSAPI NTSTATUS NTAPI NtSetInformationKey(
+    HANDLE KeyHandle,
+    KEY_SET_INFORMATION_CLASS KeySetInformationClass,
+    PVOID KeySetInformation,
+    ULONG KeySetInformationLength);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryOpenSubKeys(
+    POBJECT_ATTRIBUTES TargetKey,
+    PULONG HandleCount);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryOpenSubKeysEx(
+    POBJECT_ATTRIBUTES TargetKey,
+    ULONG BufferLength,
+    PVOID Buffer,
+    PULONG RequiredSize OPTIONAL);
+
+
+NTSYSAPI NTSTATUS NTAPI NtLoadKey(
+    POBJECT_ATTRIBUTES TargetKey,
+    POBJECT_ATTRIBUTES SourceFile);
+
+NTSYSAPI NTSTATUS NTAPI NtLoadKey2(
+    POBJECT_ATTRIBUTES TargetKey,
+    POBJECT_ATTRIBUTES SourceFile,
+    ULONG Flags);
+
+NTSYSAPI NTSTATUS NTAPI NtLoadKeyEx(
+    POBJECT_ATTRIBUTES TargetKey,
+    POBJECT_ATTRIBUTES SourceFile,
+    ULONG Flags,
+    HANDLE TrustClassKey OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtUnloadKey(
+    POBJECT_ATTRIBUTES TargetKey);
+
+NTSYSAPI NTSTATUS NTAPI NtUnloadKey2(
+    POBJECT_ATTRIBUTES TargetKey,
+    ULONG Flags);
+
+NTSYSAPI NTSTATUS NTAPI NtUnloadKeyEx(
+    POBJECT_ATTRIBUTES TargetKey,
+    HANDLE Event OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtReplaceKey(
+    POBJECT_ATTRIBUTES NewFile,
+    HANDLE TargetHandle,
+    POBJECT_ATTRIBUTES OldFile);
+
+
+
+NTSYSAPI NTSTATUS NTAPI NtSaveKey(
+    HANDLE KeyHandle,
+    HANDLE FileHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtSaveKeyEx(
+    HANDLE KeyHandle,
+    HANDLE FileHandle,
+    ULONG Format);
+
+NTSYSAPI NTSTATUS NTAPI NtSaveMergedKeys(
+    HANDLE HighPrecedenceKeyHandle,
+    HANDLE LowPrecedenceKeyHandle,
+    HANDLE FileHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtRestoreKey(
+    HANDLE KeyHandle,
+    HANDLE FileHandle,
+    ULONG Flags);
+
+
+NTSYSAPI NTSTATUS NTAPI NtEnumerateValueKey(
+    HANDLE KeyHandle,
+    ULONG Index,
+    KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
+    PVOID KeyValueInformation,
+    ULONG Length,
+    PULONG ResultLength);
+
+NTSYSAPI NTSTATUS NTAPI NtSetValueKey(
+    HANDLE KeyHandle,
+    PUNICODE_STRING ValueName,
+    ULONG TitleIndex OPTIONAL,
+    ULONG Type,
+    PVOID Data,
+    ULONG DataSize);
+
+NTSYSAPI NTSTATUS NTAPI NtDeleteValueKey(
+    HANDLE KeyHandle,
+    PUNICODE_STRING ValueName);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryValueKey(
+    HANDLE KeyHandle,
+    PUNICODE_STRING ValueName,
+    KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
+    PVOID KeyValueInformation,
+    ULONG Length,
+    PULONG ResultLength);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryMultipleValueKey(
+    HANDLE KeyHandle,
+    PKEY_VALUE_ENTRY ValueEntries,
+    ULONG EntryCount,
+    PVOID ValueBuffer,
+    PULONG BufferLength,
+    PULONG RequiredBufferLength OPTIONAL);
+
+
+/******************************************************************
  * Virtual Memory Manager API
  *****************************************************************/
 
@@ -1362,6 +1735,40 @@ NTSYSAPI NTSTATUS NTAPI NtFreeVirtualMemory(
     PVOID *BaseAddress,
     PSIZE_T RegionSize,
     ULONG FreeType);
+
+NTSYSAPI NTSTATUS NTAPI NtAllocateUserPhysicalPages(
+    HANDLE ProcessHandle,
+    PULONG_PTR NumberOfPages,
+    PULONG_PTR UserPfnArray);
+
+NTSYSAPI NTSTATUS NTAPI NtMapUserPhysicalPages(
+    PVOID VirtualAddresses,
+    ULONG_PTR NumberOfPages,
+    PULONG_PTR UserPfnArray);
+
+NTSYSAPI NTSTATUS NTAPI NtMapUserPhysicalPagesScatter(
+    PVOID *VirtualAddresses,
+    ULONG_PTR NumberOfPages,
+    PULONG_PTR UserPfnArray);
+
+NTSYSAPI NTSTATUS NTAPI NtFreeUserPhysicalPages(
+    HANDLE ProcessHandle,
+    PULONG_PTR NumberOfPages,
+    PULONG_PTR UserPfnArray);
+
+NTSYSAPI NTSTATUS NTAPI NtGetWriteWatch(
+    HANDLE ProcessHandle,
+    ULONG Flags,
+    PVOID BaseAddress,
+    SIZE_T RegionSize,
+    PVOID *UserAddressArray,
+    PULONG_PTR EntriesInUserAddressArray,
+    PULONG Granularity);
+
+NTSYSAPI NTSTATUS NTAPI NtResetWriteWatch(
+    HANDLE ProcessHandle,
+    PVOID BaseAddress,
+    SIZE_T RegionSize);
 
 
 /******************************************************************
@@ -1461,6 +1868,10 @@ NTSYSAPI NTSTATUS NTAPI NtQuerySection(
     PVOID InformationBuffer,
     ULONG InformationBufferSize,
     PULONG ResultLength OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtAreMappedFilesTheSame(
+    PVOID File1MappedAsAnImage,
+    PVOID File2MappedAsFile);
 
 
 /******************************************************************
@@ -1663,6 +2074,10 @@ NTSYSAPI NTSTATUS NTAPI NtFsControlFile(
     ULONG InputBufferLength,
     PVOID OutputBuffer OPTIONAL,
     ULONG OutputBufferLength);
+
+NTSYSAPI NTSTATUS NTAPI NtCancelIoFile(
+    HANDLE FileHandle,
+    PIO_STATUS_BLOCK IoStatusBlock);
 
 NTSYSAPI NTSTATUS NTAPI NtQueryInformationFile(
     HANDLE FileHandle,
@@ -1875,6 +2290,11 @@ NTSYSAPI NTSTATUS NTAPI NtSetInformationToken(
     TOKEN_INFORMATION_CLASS TokenInformationClass,
     PVOID TokenInformation,
     ULONG TokenInformationLength);
+
+NTSYSAPI NTSTATUS NTAPI NtCompareTokens(
+    HANDLE FirstTokenHandle,
+    HANDLE SecondTokenHandle,
+    PBOOLEAN Equal);
 
 NTSYSAPI NTSTATUS NTAPI NtPrivilegeCheck(
     HANDLE TokenHandle,
@@ -2173,6 +2593,13 @@ NTSYSAPI NTSTATUS NTAPI NtCreatePort(
     ULONG MaxMessageSize,
     ULONG Reserved);
 
+NTSYSAPI NTSTATUS NTAPI NtCreateWaitablePort(
+    PHANDLE PortHandle,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    ULONG MaxConnectInfoLength,
+    ULONG MaxDataLength,
+    ULONG MaxPoolUsage);
+
 NTSYSAPI NTSTATUS NTAPI NtAcceptConnectPort(
     PHANDLE PortHandle,
     PVOID PortContext,
@@ -2242,6 +2669,35 @@ NTSYSAPI NTSTATUS NTAPI NtReadRequestData(
     ULONG BufferSize,
     PULONG NumberOfBytesRead);
 
+
+/******************************************************************
+ * Advanced LPC API
+ *****************************************************************/
+
+/*
+ * Types
+ */
+
+typedef struct _ALPC_PORT_ATTRIBUTES {
+    ULONG Flags;
+    SECURITY_QUALITY_OF_SERVICE SecurityQos;
+    ULONG MaxMessageLength;
+    ULONG MemoryBandwidth;
+    ULONG MaxPoolUsage;
+    ULONG MaxSectionSize;
+    ULONG MaxViewSize;
+    ULONG MaxTotalSectionSize;
+    ULONG DupObjectTypes;
+} ALPC_PORT_ATTRIBUTES, *PALPC_PORT_ATTRIBUTES;
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtAlpcCreatePort(
+    PHANDLE PortObject,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    PALPC_PORT_ATTRIBUTES pPortInformation);
 
 /******************************************************************
  * Input/Output Manager API
@@ -2405,19 +2861,19 @@ NTSYSAPI ULONG NTAPI NtGetTickCount();
 NTSYSAPI NTSTATUS NTAPI NtQueryPerformanceCounter(
     PLARGE_INTEGER PerformanceCounter,
     PLARGE_INTEGER PerformanceFrequency OPTIONAL);
-    
+
 NTSYSAPI NTSTATUS NTAPI NtQuerySystemTime(
     PLARGE_INTEGER SystemTime);
-    
+
 NTSYSAPI NTSTATUS NTAPI NtQueryTimerResolution(
     PULONG MinimumResolution,
     PULONG MaximumResolution,
     PULONG CurrentResolution);
-  
+
 NTSYSAPI NTSTATUS NTAPI NtSetSystemTime(
     PLARGE_INTEGER SystemTime,
     PLARGE_INTEGER PreviousTime OPTIONAL);
-  
+
 NTSYSAPI NTSTATUS NTAPI NtSetTimerResolution(
     ULONG DesiredResolution,
     BOOLEAN SetResolution,
