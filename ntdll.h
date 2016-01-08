@@ -3,6 +3,9 @@
 
 //#include <winternl.h>
 
+/* Change to 1 to include stuff defined in winnt.h */
+#define __INCLUDE_WINNT_DEFINES 0
+
 #ifndef OPTIONAL
 #define OPTIONAL
 #endif
@@ -64,7 +67,7 @@ typedef struct _IO_STATUS_BLOCK {
 
 typedef VOID (NTAPI *PIO_APC_ROUTINE)(PVOID ApcContext, PIO_STATUS_BLOCK IoStatusBlock, ULONG Reserved);
 
-#if 0
+#if __INCLUDE_WINNT_DEFINES
 typedef struct _IO_COUNTERS {
     ULONGLONG ReadOperationCount;
     ULONGLONG WriteOperationCount;
@@ -205,6 +208,11 @@ typedef struct _OBJECT_HANDLE_FLAG_INFORMATION {
     BOOLEAN Inherit;
     BOOLEAN ProtectFromClose;
 } OBJECT_HANDLE_FLAG_INFORMATION, *POBJECT_HANDLE_FLAG_INFORMATION;
+
+typedef enum _OBJECT_WAIT_TYPE {
+    WaitAllObject,
+    WaitAnyObject,
+} OBJECT_WAIT_TYPE, *POBJECT_WAIT_TYPE;
 
 /*
  * Functions
@@ -580,7 +588,7 @@ typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX {
 typedef struct _SYSTEM_HANDLE_INFORMATION_EX {
     ULONG_PTR NumberOfHandles;
     ULONG_PTR Reserved;
-    SYSTEM_EXTENDED_HANDLE_TABLE_ENTRY_INFO Handles[1];
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handles[1];
 } SYSTEM_HANDLE_INFORMATION_EX, *PSYSTEM_HANDLE_INFORMATION_EX;
 
 /*
@@ -985,6 +993,7 @@ NTSYSAPI NTSTATUS NTAPI NtYieldExecution(VOID);
  * Types
  */
 
+#if __INCLUDE_WINNT_DEFINES
 typedef enum _JOBOBJECTINFOCLASS {
     JobObjectBasicAccountingInformation = 1,
     JobObjectBasicLimitInformation,
@@ -1004,6 +1013,7 @@ typedef struct _JOB_SET_ARRAY {
     ULONG MemberLevel;
     ULONG Flags;
 } JOB_SET_ARRAY, *PJOB_SET_ARRAY;
+#endif /* __INCLUDE_WINNT_DEFINES */
 
 /*
  * Functions
@@ -1195,6 +1205,8 @@ typedef struct _TIMER_BASIC_INFORMATION {
     BOOLEAN TimerState;
 } TIMER_BASIC_INFORMATION, *PTIMER_BASIC_INFORMATION;
 
+typedef VOID (*PTIMER_APC_ROUTINE)(PVOID TimerContext, ULONG TimerLowValue, LONG TimerHighValue);
+
 /*
  * Functions
  */
@@ -1205,7 +1217,7 @@ NTSYSAPI NTSTATUS NTAPI NtCreateTimer(
     POBJECT_ATTRIBUTES ObjectAttributes,
     TIMER_TYPE TimerType);
 
-NTSYSAPI NTSTATUS NTAPI NtCreateTimer(
+NTSYSAPI NTSTATUS NTAPI NtOpenTimer(
     PHANDLE TimerHandle,
     ACCESS_MASK DesiredAccess,
     POBJECT_ATTRIBUTES ObjectAttributes);
@@ -1653,7 +1665,7 @@ typedef enum _MEMORY_INFORMATION_CLASS {
     MemoryBasicVlmInformation
 } MEMORY_INFORMATION_CLASS, *PMEMORY_INFORMATION_CLASS;
 
-/* Defined in winnt.h
+#if __INCLUDE_WINNT_DEFINES
 typedef struct _MEMORY_BASIC_INFORMATION {
     PVOID BaseAddress;
     PVOID AllocationBase;
@@ -1663,7 +1675,7 @@ typedef struct _MEMORY_BASIC_INFORMATION {
     ULONG Protect;
     ULONG Type;
 } MEMORY_BASIC_INFORMATION, *PMEMORY_BASIC_INFORMATION;
-*/
+#endif /* __INCLUDE_WINNT_DEFINES*/
 
 typedef struct _MEMORY_SECTION_NAME {
     UNICODE_STRING SectionFileName;
@@ -2120,6 +2132,7 @@ NTSYSAPI NTSTATUS NTAPI NtQuerySymbolicLinkObject(
  * Types
  */
 
+#if __INCLUDE_WINNT_DEFINES
 typedef struct _ACL {
     CHAR AclRevision;
     CHAR Sbz1;
@@ -2223,6 +2236,7 @@ typedef enum _TOKEN_INFORMATION_CLASS {
     TokenIsRestricted,
     MaxTokenInfoClass
 } TOKEN_INFORMATION_CLASS, *PTOKEN_INFORMATION_CLASS;
+#endif /* __INCLUDE_WINNT_DEFINES */
 
 /*
  * Functions
