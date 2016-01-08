@@ -2855,7 +2855,7 @@ NTSYSAPI NTSTATUS NTAPI NtReadRequestData(
 
 NTSYSAPI NTSTATUS NTAPI NtImpersonateClientOfPort(
     HANDLE PortHandle,
-    PLPC_MESSAGE Request);
+    PPORT_MESSAGE Message);
 
 
 /******************************************************************
@@ -3392,6 +3392,7 @@ NTSYSAPI NTSTATUS NTAPI NtUnloadDriver(
  * Power API
  *****************************************************************/
 
+#if __INCLUDE_WINNT_DEFINES
 typedef enum _POWER_INFORMATION_LEVEL {
     SystemPowerPolicyAc,
     SystemPowerPolicyDc,
@@ -3417,6 +3418,7 @@ typedef enum _POWER_INFORMATION_LEVEL {
     VerifyProcessorPowerPolicyDc,
     ProcessorPowerPolicyCurrent,
 } POWER_INFORMATION_LEVEL;
+#endif
 
 typedef ULONG EXECUTION_STATE;
 
