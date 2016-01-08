@@ -2,6 +2,11 @@
 #define __NTDLL_H_INCLUDED
 
 //#include <winternl.h>
+#include "ntapiver.h"
+
+#ifndef NTAPI_LEVEL
+#define NTAPI_LEVEL NTAPI_LEVEL_WINXP
+#endif
 
 /* Change to 1 to include stuff defined in winnt.h */
 #define __INCLUDE_WINNT_DEFINES 0
@@ -139,10 +144,9 @@ typedef enum _OBJECT_INFORMATION_CLASS {    // Q/S
     ObjectTypeInformation = 2,              // Y/N
     ObjectTypesInformation = 3,             // Y/N
     ObjectHandleFlagInformation = 4,        // Y/Y
-    MaxObjectInfoClass_NT500 = 0x5,
-
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WINXP)
     ObjectSessionInformation = 5,           // N/Y
-    MaxObjectInfoClass = 6,
+#endif
 } OBJECT_INFORMATION_CLASS;
 
 /* ObjectBasicInformation */
@@ -364,10 +368,9 @@ typedef enum _SYSTEM_INFORMATION_CLASS {
     SystemWatchdogTimerHandler = 0x47,
     SystemWatchdogTimerInformation = 0x48,
     SystemLogicalProcessorInformation = 0x49,
-    MaxSystemInfoClass_NT500 = 0x4A,
-
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WINXP)
     SystemWow64SharedInformation = 0x4A,
-    MaxSystemInfoClass_NT513 = 0x4B,
+#endif
 } SYSTEM_INFORMATION_CLASS, *PSYSTEM_INFORMATION_CLASS;
 
 /* SystemBasicInformation */
@@ -584,7 +587,9 @@ typedef struct _SYSTEM_HANDLE_INFORMATION {
     SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
 } SYSTEM_HANDLE_INFORMATION, *PSYSTEM_HANDLE_INFORMATION;
 
-/* SystemExtendedHandleInformation: since 5.1 */
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WINXP)
+
+/* SystemExtendedHandleInformation */
 
 typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX {
     PVOID Object;
@@ -603,6 +608,8 @@ typedef struct _SYSTEM_HANDLE_INFORMATION_EX {
     SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handles[1];
 } SYSTEM_HANDLE_INFORMATION_EX, *PSYSTEM_HANDLE_INFORMATION_EX;
 
+#endif
+
 /*
  * Functions
  */
@@ -619,11 +626,12 @@ NTSYSAPI NTSTATUS NTAPI NtSetSystemInformation(
     ULONG SystemInformationLength);
 
 /* INCOMPLETE SIGNATURE */
-/* Since: NT 5.1 */
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WINXP)
 NTSYSAPI NTSTATUS NTAPI NtEnumerateSystemEnvironmentValuesEx(
     ULONG InformationClass,
     PVOID Buffer,
     ULONG BufferLength);
+#endif
 
 NTSYSAPI NTSTATUS NTAPI NtQuerySystemEnvironmentValue(
     PUNICODE_STRING VariableName,
@@ -680,6 +688,15 @@ NTSYSAPI NTSTATUS NTAPI NtCreateDirectoryObject(
     ACCESS_MASK DesiredAccess,
     POBJECT_ATTRIBUTES ObjectAttributes);
 
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WIN8)
+NTSYSAPI NTSTATUS NTAPI NtCreateDirectoryObjectEx(
+    PHANDLE DirectoryHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    HANDLE ShadowDirectoryHandle,
+    ULONG Flags);
+#endif
+
 NTSYSAPI NTSTATUS NTAPI NtOpenDirectoryObject(
     PHANDLE DirectoryHandle,
     ACCESS_MASK DesiredAccess,
@@ -694,6 +711,33 @@ NTSYSAPI NTSTATUS NTAPI NtQueryDirectoryObject(
     PULONG Context,
     PULONG ReturnLength OPTIONAL);
 
+
+/******************************************************************
+ * Namespace API
+ *****************************************************************/
+
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_VISTA)
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreatePrivateNamespace(
+    PHANDLE NamespaceHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    PVOID BoundaryDescriptor);
+
+NTSYSAPI NTSTATUS NTAPI NtOpenPrivateNamespace(
+    PHANDLE NamespaceHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    PVOID BoundaryDescriptor);
+
+NTSYSAPI NTSTATUS NTAPI NtDeletePrivateNamespace(
+    HANDLE NamespaceHandle);
+
+#endif
 
 /******************************************************************
  * Process API
@@ -784,7 +828,7 @@ typedef struct _PROCESS_BASIC_INFORMATION {
 
 /* ProcessDeviceMap */
 
-struct _PROCESS_DEVICEMAP_INFORMATION {
+typedef struct _PROCESS_DEVICEMAP_INFORMATION {
     union {
         struct {
             PVOID DirectoryHandle;
@@ -794,10 +838,9 @@ struct _PROCESS_DEVICEMAP_INFORMATION {
             CHAR DriveType[32];
         } Query;
     };
-};
+} PROCESS_DEVICEMAP_INFORMATION, *PPROCESS_DEVICEMAP_INFORMATION;
 
-struct _PROCESS_DEVICEMAP_INFORMATION_EX
-{
+typedef struct _PROCESS_DEVICEMAP_INFORMATION_EX {
     union {
         struct {
             PVOID DirectoryHandle;
@@ -808,7 +851,102 @@ struct _PROCESS_DEVICEMAP_INFORMATION_EX
         } Query;
     };
     ULONG Flags;
-};
+} PROCESS_DEVICEMAP_INFORMATION_EX, *PPROCESS_DEVICEMAP_INFORMATION_EX;
+
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_VISTA)
+
+typedef enum _PS_CREATE_STATE {
+    PsCreateInitialState,
+    PsCreateFailOnFileOpen,
+    PsCreateFailOnSectionCreate,
+    PsCreateFailExeFormat,
+    PsCreateFailMachineMismatch,
+    PsCreateFailExeName, // Debugger specified
+    PsCreateSuccess,
+    PsCreateMaximumStates
+} PS_CREATE_STATE;
+
+typedef struct _PS_CREATE_INFO {
+    SIZE_T Size;
+    PS_CREATE_STATE State;
+    union
+    {
+        // PsCreateInitialState
+        struct {
+            union {
+                ULONG InitFlags;
+                struct {
+                    UCHAR WriteOutputOnExit : 1;
+                    UCHAR DetectManifest : 1;
+                    UCHAR IFEOSkipDebugger : 1;
+                    UCHAR IFEODoNotPropagateKeyState : 1;
+                    UCHAR SpareBits1 : 4;
+                    UCHAR SpareBits2 : 8;
+                    USHORT ProhibitedImageCharacteristics : 16;
+                };
+            };
+            ACCESS_MASK AdditionalFileAccess;
+        } InitState;
+
+        // PsCreateFailOnSectionCreate
+        struct {
+            HANDLE FileHandle;
+        } FailSection;
+
+        // PsCreateFailExeFormat
+        struct {
+            USHORT DllCharacteristics;
+        } ExeFormat;
+
+        // PsCreateFailExeName
+        struct {
+            HANDLE IFEOKey;
+        } ExeName;
+
+        // PsCreateSuccess
+        struct {
+            union {
+                ULONG OutputFlags;
+                struct {
+                    UCHAR ProtectedProcess : 1;
+                    UCHAR AddressSpaceOverride : 1;
+                    UCHAR DevOverrideEnabled : 1; // from Image File Execution Options
+                    UCHAR ManifestDetected : 1;
+                    UCHAR ProtectedProcessLight : 1;
+                    UCHAR SpareBits1 : 3;
+                    UCHAR SpareBits2 : 8;
+                    USHORT SpareBits3 : 16;
+                };
+            };
+            HANDLE FileHandle;
+            HANDLE SectionHandle;
+            ULONGLONG UserProcessParametersNative;
+            ULONG UserProcessParametersWow64;
+            ULONG CurrentParameterFlags;
+            ULONGLONG PebAddressNative;
+            ULONG PebAddressWow64;
+            ULONGLONG ManifestAddress;
+            ULONG ManifestSize;
+        } SuccessState;
+    };
+} PS_CREATE_INFO, *PPS_CREATE_INFO;
+
+typedef struct _PS_ATTRIBUTE {
+    ULONG Attribute;
+    SIZE_T Size;
+    union {
+        ULONG Value;
+        PVOID ValuePtr;
+    };
+    PSIZE_T ReturnLength;
+} PS_ATTRIBUTE, *PPS_ATTRIBUTE;
+
+typedef struct _PS_ATTRIBUTE_LIST {
+    SIZE_T TotalLength;
+    PS_ATTRIBUTE Attributes[1];
+} PS_ATTRIBUTE_LIST, *PPS_ATTRIBUTE_LIST;
+
+#endif
 
 /*
  * Functions
@@ -826,7 +964,7 @@ NTSYSAPI NTSTATUS NTAPI NtCreateProcess(
     HANDLE DebugPort OPTIONAL,
     HANDLE ExceptionPort OPTIONAL);
 
-/* Since: NT 5.1 */
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WINXP)
 NTSYSAPI NTSTATUS NTAPI NtCreateProcessEx(
     PHANDLE ProcessHandle,
     ACCESS_MASK DesiredAccess,
@@ -838,18 +976,31 @@ NTSYSAPI NTSTATUS NTAPI NtCreateProcessEx(
     HANDLE ExceptionPort OPTIONAL,
     BOOLEAN InJob);
 
-/* Since: NT 5.1 */
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_VISTA)
+NTSYSAPI NTSTATUS NTAPI NtCreateUserProcess(
+    PHANDLE ProcessHandle,
+    PHANDLE ThreadHandle,
+    ACCESS_MASK ProcessDesiredAccess,
+    ACCESS_MASK ThreadDesiredAccess,
+    POBJECT_ATTRIBUTES ProcessObjectAttributes OPTIONAL,
+    POBJECT_ATTRIBUTES ThreadObjectAttributes OPTIONAL,
+    ULONG ProcessFlags,
+    ULONG ThreadFlags,
+    PVOID ProcessParameters OPTIONAL,
+    PPS_CREATE_INFO CreateInfo,
+    PPS_ATTRIBUTE_LIST AttributeList OPTIONAL);
+#endif
+
 NTSYSAPI NTSTATUS NTAPI NtSuspendProcess(
     HANDLE ProcessHandle);
 
-/* Since: NT 5.1 */
 NTSYSAPI NTSTATUS NTAPI NtResumeProcess(
     HANDLE ProcessHandle);
 
-/* Since: NT 5.1 */
 NTSYSAPI NTSTATUS NTAPI NtIsProcessInJob(
     HANDLE ProcessHandle,
     HANDLE JobHandle);
+#endif
 
 NTSYSAPI NTSTATUS NTAPI NtQueryInformationProcess(
     HANDLE ProcessHandle,
@@ -906,11 +1057,10 @@ typedef enum _THREAD_INFORMATION_CLASS {        // Q/S
     ThreadIsIoPending = 0x10,                   // Y/N
     ThreadHideFromDebugger = 0x11,              // N/Y
     ThreadBreakOnTermination = 0x12,
-    MaxThreadInfoClass_NT500 = 0x13,
-
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WINXP)
     ThreadSwitchLegacyState = 0x13,
-    MaxThreadInfoClass_NT520 = 0x14,
-
+#endif
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_VISTA)
     ThreadIsTerminated = 0x14,
     ThreadLastSystemCall = 0x15,
     ThreadIoPriority = 0x16,
@@ -925,11 +1075,10 @@ typedef enum _THREAD_INFORMATION_CLASS {        // Q/S
     ThreadUmsInformation = 0x1F,
     ThreadCounterProfiling = 0x20,
     ThreadIdealProcessorEx = 0x21,
-    MaxThreadInfoClass_NT610 = 0x22,
-
+#endif
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WIN7)
     ThreadCpuAccountingInformation = 0x22,
-    MaxThreadInfoClass_NT620 = 0x23,
-
+#endif
 } THREAD_INFORMATION_CLASS, *PTHREAD_INFORMATION_CLASS;
 
 /* ThreadBasicInformation */
@@ -952,12 +1101,33 @@ typedef struct _THREAD_BASIC_INFORMATION {
 NTSYSAPI NTSTATUS NTAPI NtCreateThread(
     PHANDLE ThreadHandle,
     ACCESS_MASK DesiredAccess,
-    POBJECT_ATTRIBUTES ObjectAttributes,
+    POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
     HANDLE ProcessHandle,
     PCLIENT_ID ClientId,
     PCONTEXT ThreadContext,
     PUSER_STACK UserStack,
     BOOLEAN CreateSuspended);
+
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_VISTA)
+NTSYSAPI NTSTATUS NTAPI NtCreateThreadEx(
+    PHANDLE ThreadHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    HANDLE ProcessHandle,
+    PVOID StartRoutine,
+    PVOID Argument OPTIONAL,
+    ULONG CreateFlags,
+    SIZE_T ZeroBits,
+    SIZE_T StackSize,
+    SIZE_T MaximumStackSize,
+    PPS_ATTRIBUTE_LIST AttributeList OPTIONAL);
+#endif
+
+NTSYSAPI NTSTATUS NTAPI NtOpenThread(
+    PHANDLE ThreadHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    PCLIENT_ID ClientId OPTIONAL);
 
 NTSYSAPI NTSTATUS NTAPI NtQueryInformationThread(
     HANDLE ThreadHandle,
@@ -1050,7 +1220,7 @@ NTSYSAPI NTSTATUS NTAPI NtQueueApcThread(
     PVOID SystemArgument1,
     PVOID SystemArgument2);
 
-/* Since: 6.1 */
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WIN7)
 NTSYSAPI NTSTATUS NTAPI NtQueueApcThreadEx(
     HANDLE ThreadHandle,
     HANDLE ApcReserveHandle,
@@ -1058,6 +1228,7 @@ NTSYSAPI NTSTATUS NTAPI NtQueueApcThreadEx(
     PVOID NormalContext,
     PVOID SystemArgument1,
     PVOID SystemArgument2);
+#endif
 
 NTSYSAPI NTSTATUS NTAPI NtDelayExecution(
     BOOLEAN Alertable,
@@ -1070,7 +1241,7 @@ NTSYSAPI NTSTATUS NTAPI NtYieldExecution(VOID);
  * Job API
  *****************************************************************/
 
-/* Since: NT 5.1 */
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WINXP)
 
 /*
  * Types
@@ -1132,6 +1303,7 @@ NTSYSAPI NTSTATUS NTAPI NtQueryInformationJobObject(
     ULONG JobInformationLength,
     PULONG ReturnLength);
 
+#endif
 
 /******************************************************************
  * Event API
@@ -1572,6 +1744,39 @@ NTSYSAPI NTSTATUS NTAPI NtOpenKey(
     ACCESS_MASK DesiredAccess,
     POBJECT_ATTRIBUTES ObjectAttributes);
 
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_VISTA)
+NTSYSAPI NTSTATUS NTAPI NtCreateKeyTransacted(
+    PHANDLE KeyHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    ULONG TitleIndex,
+    PUNICODE_STRING Class OPTIONAL,
+    ULONG CreateOptions,
+    HANDLE TransactionHandle,
+    PULONG Disposition OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtOpenKeyTransacted(
+    PHANDLE KeyHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    HANDLE TransactionHandle);
+#endif
+
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WIN7)
+NTSYSAPI NTSTATUS NTAPI NtOpenKeyEx(
+    PHANDLE KeyHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    ULONG OpenOptions);
+
+NTSYSAPI NTSTATUS NTAPI NtOpenKeyTransactedEx(
+    PHANDLE KeyHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    ULONG OpenOptions,
+    HANDLE TransactionHandle);
+#endif
+
 NTSYSAPI NTSTATUS NTAPI NtRenameKey(
     HANDLE KeyHandle,
     PUNICODE_STRING NewName);
@@ -1673,7 +1878,6 @@ NTSYSAPI NTSTATUS NTAPI NtReplaceKey(
     POBJECT_ATTRIBUTES NewFile,
     HANDLE TargetHandle,
     POBJECT_ATTRIBUTES OldFile);
-
 
 
 NTSYSAPI NTSTATUS NTAPI NtSaveKey(
@@ -2019,8 +2223,7 @@ typedef enum _FILE_INFORMATION_CLASS {
     FileIdFullDirectoryInformation = 0x26,
     FileValidDataLengthInformation = 0x27,
     FileShortNameInformation = 0x28,
-    FileMaximumInformation_NT500 = 0x29,
-
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WINXP)
     FileIoCompletionNotificationInformation = 0x29,
     FileIoStatusBlockRangeInformation = 0x2A,
     FileIoPriorityHintInformation = 0x2B,
@@ -2037,6 +2240,7 @@ typedef enum _FILE_INFORMATION_CLASS {
     FileStandardLinkInformation = 0x36,
     FileRemoteProtocolInformation = 0x37,
     FileMaximumInformation_NT610 = 0x38,
+#endif
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
 /*
@@ -2353,26 +2557,26 @@ NTSYSAPI NTSTATUS NTAPI NtOpenProcessToken(
     ACCESS_MASK DesiredAccess,
     PHANDLE TokenHandle);
 
-/* Since: 5.1 */
-NTSYSAPI NTSTATUS NTAPI NtOpenProcessTokenEx(
-    HANDLE ProcessHandle,
-    ACCESS_MASK DesiredAccess,
-    ULONG HandleAttributes,
-    PHANDLE TokenHandle);
-
 NTSYSAPI NTSTATUS NTAPI NtOpenThreadToken(
     HANDLE ThreadHandle,
     ACCESS_MASK DesiredAccess,
     BOOLEAN OpenAsSelf,
     PHANDLE TokenHandle);
 
-/* Since: 5.1 */
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WINXP)
+NTSYSAPI NTSTATUS NTAPI NtOpenProcessTokenEx(
+    HANDLE ProcessHandle,
+    ACCESS_MASK DesiredAccess,
+    ULONG HandleAttributes,
+    PHANDLE TokenHandle);
+
 NTSYSAPI NTSTATUS NTAPI NtOpenThreadTokenEx(
     HANDLE ThreadHandle,
     ACCESS_MASK DesiredAccess,
     BOOLEAN OpenAsSelf,
     ULONG HandleAttributes,
     PHANDLE TokenHandle);
+#endif
 
 NTSYSAPI NTSTATUS NTAPI NtAdjustGroupsToken(
     HANDLE TokenHandle,
@@ -2644,11 +2848,11 @@ typedef enum _SYSDBG_COMMAND {
     SysDbgSetPrintBufferSize = 0x1A,
     SysDbgGetKdUmExceptionEnable = 0x1B,
     SysDbgSetKdUmExceptionEnable = 0x1C,
-    /* NT 5.0.0 ends */
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_WINXP)
     SysDbgGetTriageDump = 0x1D,
     SysDbgGetKdBlockEnable = 0x1E,
     SysDbgSetKdBlockEnable = 0x1F,
-    /* NT 5.2.0 ends */
+#endif
 } SYSDBG_COMMAND;
 
 typedef struct _SYSDBG_PHYSICAL {
@@ -2862,6 +3066,8 @@ NTSYSAPI NTSTATUS NTAPI NtImpersonateClientOfPort(
  * Advanced LPC API
  *****************************************************************/
 
+ #if (NTAPI_LEVEL >= NTAPI_LEVEL_VISTA)
+
 /*
  * Types
  */
@@ -2886,6 +3092,9 @@ NTSYSAPI NTSTATUS NTAPI NtAlpcCreatePort(
     PHANDLE PortObject,
     POBJECT_ATTRIBUTES ObjectAttributes,
     PALPC_PORT_ATTRIBUTES pPortInformation);
+
+#endif
+
 
 /******************************************************************
  * Input/Output Manager API
@@ -3033,7 +3242,7 @@ NTSYSAPI NTSTATUS NTAPI NtQueryIntervalProfile(
  * Transaction manager API
  *****************************************************************/
 
-/* Since: 6.0 */
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_VISTA)
 
 /*
  * Types
@@ -3114,12 +3323,14 @@ NTSYSAPI NTSTATUS NTAPI NtEnumerateTransactionObject(
     ULONG ObjectCursorLength,
     PULONG ReturnLength);
 
+#endif
+
 
 /******************************************************************
  * Transaction API
  *****************************************************************/
 
-/* Since: 6.0 */
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_VISTA)
 
 /*
  * Types
@@ -3184,12 +3395,14 @@ NTSYSAPI NTSTATUS NTAPI NtFreezeTransactions(
 
 NTSYSAPI NTSTATUS NTAPI NtThawTransactions(VOID);
 
+#endif
+
 
 /******************************************************************
  * Transaction enlistment API
  *****************************************************************/
 
-/* Since: 6.0 */
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_VISTA)
 
 /*
  * Types
@@ -3281,12 +3494,14 @@ NTSYSAPI NTSTATUS NTAPI NtSinglePhaseReject(
     HANDLE EnlistmentHandle,
     PLARGE_INTEGER TmVirtualClock OPTIONAL);
 
+#endif
+
 
 /******************************************************************
  * Resource manager API
  *****************************************************************/
 
-/* Since: 6.0 */
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_VISTA)
 
 /*
  * Types
@@ -3371,6 +3586,81 @@ NTSYSAPI NTSTATUS NTAPI NtPropagationFailed(
     ULONG RequestCookie,
     NTSTATUS PropStatus);
 
+#endif
+
+
+/******************************************************************
+ * Worker factory API
+ *****************************************************************/
+
+#if (NTAPI_LEVEL >= NTAPI_LEVEL_VISTA)
+
+struct _FILE_IO_COMPLETION_INFORMATION;
+
+typedef enum _WORKERFACTORYINFOCLASS {
+    WorkerFactoryTimeout,
+    WorkerFactoryRetryTimeout,
+    WorkerFactoryIdleTimeout,
+    WorkerFactoryBindingCount,
+    WorkerFactoryThreadMinimum,
+    WorkerFactoryThreadMaximum,
+    WorkerFactoryPaused,
+    WorkerFactoryBasicInformation,
+    WorkerFactoryAdjustThreadGoal,
+    WorkerFactoryCallbackType,
+    WorkerFactoryStackInformation,
+    WorkerFactoryThreadBasePriority,
+    WorkerFactoryTimeoutWaiters,
+    WorkerFactoryFlags,
+    WorkerFactoryThreadSoftMaximum,
+    MaxWorkerFactoryInfoClass,
+} WORKERFACTORYINFOCLASS, *PWORKERFACTORYINFOCLASS;
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtCreateWorkerFactory(
+    PHANDLE WorkerFactoryHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes OPTIONAL,
+    HANDLE CompletionPortHandle,
+    HANDLE WorkerProcessHandle,
+    PVOID StartRoutine,
+    PVOID StartParameter OPTIONAL,
+    ULONG MaxThreadCount OPTIONAL,
+    SIZE_T StackReserve OPTIONAL,
+    SIZE_T StackCommit OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtQueryInformationWorkerFactory(
+    HANDLE WorkerFactoryHandle,
+    WORKERFACTORYINFOCLASS WorkerFactoryInformationClass,
+    PVOID WorkerFactoryInformation,
+    ULONG WorkerFactoryInformationLength,
+    PULONG ReturnLength OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtSetInformationWorkerFactory(
+    HANDLE WorkerFactoryHandle,
+    WORKERFACTORYINFOCLASS WorkerFactoryInformationClass,
+    PVOID WorkerFactoryInformation,
+    ULONG WorkerFactoryInformationLength);
+
+NTSYSAPI NTSTATUS NTAPI NtShutdownWorkerFactory(
+    HANDLE WorkerFactoryHandle,
+    PLONG PendingWorkerCount);
+
+NTSYSAPI NTSTATUS NTAPI NtReleaseWorkerFactoryWorker(
+    HANDLE WorkerFactoryHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtWorkerFactoryWorkerReady(
+    HANDLE WorkerFactoryHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtWaitForWorkViaWorkerFactory(
+    HANDLE WorkerFactoryHandle,
+    struct _FILE_IO_COMPLETION_INFORMATION *MiniPacket);
+
+#endif
+
 
 /******************************************************************
  * Drivers API
@@ -3385,7 +3675,6 @@ NTSYSAPI NTSTATUS NTAPI NtLoadDriver(
 
 NTSYSAPI NTSTATUS NTAPI NtUnloadDriver(
     PUNICODE_STRING DriverServiceName);
-
 
 
 /******************************************************************
