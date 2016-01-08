@@ -2966,6 +2966,7 @@ NTSYSAPI NTSTATUS NTAPI NtQueryIntervalProfile(
  * Types
  */
 
+#if __INCLUDE_WINNT_DEFINES
 typedef enum _TRANSACTIONMANAGER_INFORMATION_CLASS { 
     TransactionManagerBasicInformation = 0,
     TransactionManagerLogInformation = 1,
@@ -2986,6 +2987,7 @@ typedef struct _KTMOBJECT_CURSOR {
     ULONG ObjectIdCount;
     GUID ObjectIds[1];
 } KTMOBJECT_CURSOR, *PKTMOBJECT_CURSOR;
+#endif
 
 /*
  * Functions
@@ -3050,12 +3052,14 @@ NTSYSAPI NTSTATUS NTAPI NtEnumerateTransactionObject(
  * Types
  */
 
+#if __INCLUDE_WINNT_DEFINES
 typedef enum _TRANSACTION_INFORMATION_CLASS { 
     TransactionBasicInformation = 0,
     TransactionPropertiesInformation,
     TransactionEnlistmentInformation,
     TransactionSuperiorEnlistmentInformation,
 } TRANSACTION_INFORMATION_CLASS;
+#endif
 
 /*
  * Functions
@@ -3118,11 +3122,13 @@ NTSYSAPI NTSTATUS NTAPI NtThawTransactions(VOID);
  * Types
  */
 
+#if __INCLUDE_WINNT_DEFINES
 typedef enum _ENLISTMENT_INFORMATION_CLASS { 
     EnlistmentBasicInformation = 0,
     EnlistmentRecoveryInformation,
     EnlistmentCrmInformation,
 } ENLISTMENT_INFORMATION_CLASS;
+#endif
 
 /*
  * Functions
@@ -3213,6 +3219,7 @@ NTSYSAPI NTSTATUS NTAPI NtSinglePhaseReject(
  * Types
  */
 
+#if __INCLUDE_WINNT_DEFINES
 typedef enum _RESOURCEMANAGER_INFORMATION_CLASS { 
     ResourceManagerBasicInformation = 0,
     ResourceManagerCompletionInformation = 1,
@@ -3224,6 +3231,7 @@ typedef struct _TRANSACTION_NOTIFICATION {
     LARGE_INTEGER TmVirtualClock;
     ULONG ArgumentLength;
 } TRANSACTION_NOTIFICATION, *PTRANSACTION_NOTIFICATION;
+#endif
 
 typedef GUID CRM_PROTOCOL_ID, *PCRM_PROTOCOL_ID;
 
