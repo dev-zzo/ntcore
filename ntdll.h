@@ -973,6 +973,9 @@ NTSYSAPI NTSTATUS NTAPI NtImpersonateThread(
     HANDLE ThreadToImpersonate,
     PSECURITY_QUALITY_OF_SERVICE SecurityQualityOfService);
 
+NTSYSAPI NTSTATUS NTAPI NtImpersonateAnonymousToken(
+    HANDLE ThreadHandle);
+
 /*
     This function alerts the target thread using the previous mode
     as the mode of the alert.
@@ -2301,10 +2304,25 @@ NTSYSAPI NTSTATUS NTAPI NtOpenProcessToken(
     ACCESS_MASK DesiredAccess,
     PHANDLE TokenHandle);
 
+/* Since: 5.1 */
+NTSYSAPI NTSTATUS NTAPI NtOpenProcessTokenEx(
+    HANDLE ProcessHandle,
+    ACCESS_MASK DesiredAccess,
+    ULONG HandleAttributes,
+    PHANDLE TokenHandle);
+
 NTSYSAPI NTSTATUS NTAPI NtOpenThreadToken(
     HANDLE ThreadHandle,
     ACCESS_MASK DesiredAccess,
     BOOLEAN OpenAsSelf,
+    PHANDLE TokenHandle);
+
+/* Since: 5.1 */
+NTSYSAPI NTSTATUS NTAPI NtOpenThreadTokenEx(
+    HANDLE ThreadHandle,
+    ACCESS_MASK DesiredAccess,
+    BOOLEAN OpenAsSelf,
+    ULONG HandleAttributes,
     PHANDLE TokenHandle);
 
 NTSYSAPI NTSTATUS NTAPI NtAdjustGroupsToken(
@@ -2336,10 +2354,62 @@ NTSYSAPI NTSTATUS NTAPI NtSetInformationToken(
     PVOID TokenInformation,
     ULONG TokenInformationLength);
 
+NTSYSAPI NTSTATUS NTAPI NtQuerySecurityAttributesToken(
+    HANDLE TokenHandle,
+    PUNICODE_STRING Attributes,
+    ULONG NumberOfAttributes,
+    PVOID Buffer,
+    ULONG Length,
+    PULONG ReturnLength);
+
 NTSYSAPI NTSTATUS NTAPI NtCompareTokens(
     HANDLE FirstTokenHandle,
     HANDLE SecondTokenHandle,
     PBOOLEAN Equal);
+
+NTSYSAPI NTSTATUS NTAPI NtFilterToken(
+    HANDLE ExistingTokenHandle,
+    ULONG Flags,
+    PTOKEN_GROUPS SidsToDisable OPTIONAL,
+    PTOKEN_PRIVILEGES PrivilegesToDelete OPTIONAL,
+    PTOKEN_GROUPS RestrictedSids OPTIONAL,
+    PHANDLE NewTokenHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtAccessCheck(
+    PSECURITY_DESCRIPTOR SecurityDescriptor,
+    HANDLE ClientToken,
+    ACCESS_MASK DesiredAccess,
+    PGENERIC_MAPPING GenericMapping,
+    PPRIVILEGE_SET PrivilegeSet,
+    PULONG PrivilegeSetLength,
+    PACCESS_MASK GrantedAccess,
+    PNTSTATUS AccessStatus);
+
+NTSYSAPI NTSTATUS NTAPI NtAccessCheckByType(
+    PSECURITY_DESCRIPTOR SecurityDescriptor,
+    PSID PrincipalSelfSid OPTIONAL,
+    HANDLE ClientToken,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_TYPE_LIST ObjectTypeList,
+    ULONG ObjectTypeListLength,
+    PGENERIC_MAPPING GenericMapping,
+    PPRIVILEGE_SET PrivilegeSet,
+    PULONG PrivilegeSetLength,
+    PACCESS_MASK GrantedAccess,
+    PNTSTATUS AccessStatus);
+
+NTSYSAPI NTSTATUS NTAPI NtAccessCheckByTypeResultList(
+    PSECURITY_DESCRIPTOR SecurityDescriptor,
+    PSID PrincipalSelfSid OPTIONAL,
+    HANDLE ClientToken,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_TYPE_LIST ObjectTypeList,
+    ULONG ObjectTypeListLength,
+    PGENERIC_MAPPING GenericMapping,
+    PPRIVILEGE_SET PrivilegeSet,
+    PULONG PrivilegeSetLength,
+    PACCESS_MASK GrantedAccess,
+    PNTSTATUS AccessStatus);
 
 NTSYSAPI NTSTATUS NTAPI NtPrivilegeCheck(
     HANDLE TokenHandle,
