@@ -252,6 +252,18 @@ NTSYSAPI NTSTATUS NTAPI NtWaitForMultipleObjects(
     BOOLEAN Alertable,
     PLARGE_INTEGER TimeOut OPTIONAL);
 
+NTSYSAPI NTSTATUS NTAPI NtSignalAndWaitForSingleObject(
+    HANDLE ObjectToSignal,
+    HANDLE WaitableObject,
+    BOOLEAN Alertable,
+    PLARGE_INTEGER Time OPTIONAL);
+
+NTSYSAPI NTSTATUS NTAPI NtMakePermanentObject(
+    HANDLE ObjectHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtMakeTemporaryObject(
+    HANDLE ObjectHandle);
+
 NTSYSAPI NTSTATUS NTAPI NtQuerySecurityObject(
     HANDLE ObjectHandle,
     SECURITY_INFORMATION SecurityInformationClass,
@@ -637,6 +649,14 @@ NTSYSAPI NTSTATUS NTAPI NtSetSystemEnvironmentValueEx(
     PULONG ReturnLength,
     PULONG Attributes);
 
+NTSYSAPI NTSTATUS NTAPI NtRaiseHardError(
+    NTSTATUS ErrorStatus,
+    ULONG NumberOfParameters,
+    ULONG UnicodeStringParameterMask,
+    PULONG_PTR Parameters,
+    ULONG ValidResponseOptions,
+    PULONG Response);
+
 
 /******************************************************************
  * Directory API
@@ -819,6 +839,14 @@ NTSYSAPI NTSTATUS NTAPI NtCreateProcessEx(
     BOOLEAN InJob);
 
 /* Since: NT 5.1 */
+NTSYSAPI NTSTATUS NTAPI NtSuspendProcess(
+    HANDLE ProcessHandle);
+
+/* Since: NT 5.1 */
+NTSYSAPI NTSTATUS NTAPI NtResumeProcess(
+    HANDLE ProcessHandle);
+
+/* Since: NT 5.1 */
 NTSYSAPI NTSTATUS NTAPI NtIsProcessInJob(
     HANDLE ProcessHandle,
     HANDLE JobHandle);
@@ -952,9 +980,27 @@ NTSYSAPI NTSTATUS NTAPI NtSetContextThread(
     HANDLE ThreadHandle,
     PCONTEXT ThreadContext);
 
+NTSYSAPI NTSTATUS NTAPI NtRaiseException(
+    PEXCEPTION_RECORD ExceptionRecord,
+    PCONTEXT ThreadContext,
+    BOOLEAN HandleException);
+
 NTSYSAPI NTSTATUS NTAPI NtContinue(
     PCONTEXT ThreadContext,
     BOOLEAN RaiseAlert);
+
+NTSYSAPI NTSTATUS NTAPI NtCallbackReturn(
+    PVOID Result OPTIONAL,
+    ULONG ResultLength,
+    NTSTATUS Status);
+
+#if 0
+NTSYSAPI NTSTATUS NTAPI NtSetLdtEntries(
+    ULONG Selector1,
+    LDT_ENTRY LdtEntry1,
+    ULONG Selector2,
+    LDT_ENTRY LdtEntry2);
+#endif
 
 NTSYSAPI NTSTATUS NTAPI NtSuspendThread(
     HANDLE ThreadHandle,
@@ -975,6 +1021,9 @@ NTSYSAPI NTSTATUS NTAPI NtImpersonateThread(
 
 NTSYSAPI NTSTATUS NTAPI NtImpersonateAnonymousToken(
     HANDLE ThreadHandle);
+
+NTSYSAPI NTSTATUS NTAPI NtRegisterThreadTerminatePort(
+    HANDLE PortHandle);
 
 /*
     This function alerts the target thread using the previous mode
@@ -2643,6 +2692,15 @@ NTSYSAPI NTSTATUS NTAPI NtSystemDebugControl(
     ULONG OutputBufferLength,
     PULONG ReturnLength);
 
+NTSYSAPI NTSTATUS NTAPI NtQueryDebugFilterState(
+    ULONG ComponentId,
+    ULONG Level);
+
+NTSYSAPI NTSTATUS NTAPI NtSetDebugFilterState(
+    ULONG ComponentId,
+    ULONG Level,
+    BOOLEAN State);
+
 
 /******************************************************************
  * Port API
@@ -2737,6 +2795,17 @@ NTSYSAPI NTSTATUS NTAPI NtConnectPort(
     PVOID ConnectionInformation,
     PULONG ConnectionInformationLength);
 
+NTSYSAPI NTSTATUS NTAPI NtSecureConnectPort(
+    PHANDLE PortHandle,
+    PUNICODE_STRING PortName,
+    PSECURITY_QUALITY_OF_SERVICE Qos,
+    PPORT_VIEW ClientView OPTIONAL,
+    PSID ServerSid OPTIONAL,
+    PREMOTE_PORT_VIEW ServerView OPTIONAL,
+    PULONG MaxMessageLength OPTIONAL,
+    PVOID ConnectionInformation OPTIONAL,
+    PULONG ConnectionInformationLength OPTIONAL);
+
 NTSYSAPI NTSTATUS NTAPI NtCompleteConnectPort(
     HANDLE PortHandle);
 
@@ -2783,6 +2852,10 @@ NTSYSAPI NTSTATUS NTAPI NtReadRequestData(
     PVOID Buffer,
     ULONG BufferSize,
     PULONG NumberOfBytesRead);
+
+NTSYSAPI NTSTATUS NTAPI NtImpersonateClientOfPort(
+    HANDLE PortHandle,
+    PLPC_MESSAGE Request);
 
 
 /******************************************************************
@@ -2967,14 +3040,14 @@ NTSYSAPI NTSTATUS NTAPI NtQueryIntervalProfile(
  */
 
 #if __INCLUDE_WINNT_DEFINES
-typedef enum _TRANSACTIONMANAGER_INFORMATION_CLASS { 
+typedef enum _TRANSACTIONMANAGER_INFORMATION_CLASS {
     TransactionManagerBasicInformation = 0,
     TransactionManagerLogInformation = 1,
     TransactionManagerLogPathInformation = 2,
     TransactionManagerRecoveryInformation = 4,
 } TRANSACTIONMANAGER_INFORMATION_CLASS;
 
-typedef enum _KTMOBJECT_TYPE { 
+typedef enum _KTMOBJECT_TYPE {
     KTMOBJECT_TRANSACTION = 0,
     KTMOBJECT_TRANSACTION_MANAGER = 1,
     KTMOBJECT_RESOURCE_MANAGER = 2,
@@ -3053,7 +3126,7 @@ NTSYSAPI NTSTATUS NTAPI NtEnumerateTransactionObject(
  */
 
 #if __INCLUDE_WINNT_DEFINES
-typedef enum _TRANSACTION_INFORMATION_CLASS { 
+typedef enum _TRANSACTION_INFORMATION_CLASS {
     TransactionBasicInformation = 0,
     TransactionPropertiesInformation,
     TransactionEnlistmentInformation,
@@ -3123,7 +3196,7 @@ NTSYSAPI NTSTATUS NTAPI NtThawTransactions(VOID);
  */
 
 #if __INCLUDE_WINNT_DEFINES
-typedef enum _ENLISTMENT_INFORMATION_CLASS { 
+typedef enum _ENLISTMENT_INFORMATION_CLASS {
     EnlistmentBasicInformation = 0,
     EnlistmentRecoveryInformation,
     EnlistmentCrmInformation,
@@ -3220,7 +3293,7 @@ NTSYSAPI NTSTATUS NTAPI NtSinglePhaseReject(
  */
 
 #if __INCLUDE_WINNT_DEFINES
-typedef enum _RESOURCEMANAGER_INFORMATION_CLASS { 
+typedef enum _RESOURCEMANAGER_INFORMATION_CLASS {
     ResourceManagerBasicInformation = 0,
     ResourceManagerCompletionInformation = 1,
 } RESOURCEMANAGER_INFORMATION_CLASS;
@@ -3303,11 +3376,64 @@ NTSYSAPI NTSTATUS NTAPI NtPropagationFailed(
  * Drivers API
  *****************************************************************/
 
+/*
+ * Functions
+ */
+
 NTSYSAPI NTSTATUS NTAPI NtLoadDriver(
     PUNICODE_STRING DriverServiceName);
 
 NTSYSAPI NTSTATUS NTAPI NtUnloadDriver(
     PUNICODE_STRING DriverServiceName);
+
+
+
+/******************************************************************
+ * Power API
+ *****************************************************************/
+
+typedef enum _POWER_INFORMATION_LEVEL {
+    SystemPowerPolicyAc,
+    SystemPowerPolicyDc,
+    VerifySystemPolicyAc,
+    VerifySystemPolicyDc,
+    SystemPowerCapabilities,
+    SystemBatteryState,
+    SystemPowerStateHandler,
+    ProcessorStateHandler,
+    SystemPowerPolicyCurrent,
+    AdministratorPowerPolicy,
+    SystemReserveHiberFile,
+    ProcessorInformation,
+    SystemPowerInformation,
+    ProcessorStateHandler2,
+    LastWakeTime,
+    LastSleepTime,
+    SystemExecutionState,
+    SystemPowerStateNotifyHandler,
+    ProcessorPowerPolicyAc,
+    ProcessorPowerPolicyDc,
+    VerifyProcessorPowerPolicyAc,
+    VerifyProcessorPowerPolicyDc,
+    ProcessorPowerPolicyCurrent,
+} POWER_INFORMATION_LEVEL;
+
+typedef ULONG EXECUTION_STATE;
+
+/*
+ * Functions
+ */
+
+NTSYSAPI NTSTATUS NTAPI NtSetThreadExecutionState(
+    EXECUTION_STATE esFlags,
+    EXECUTION_STATE *PreviousFlags);
+                       
+NTSYSAPI NTSTATUS NTAPI NtPowerInformation(
+    POWER_INFORMATION_LEVEL InformationLevel,
+    PVOID InputBuffer OPTIONAL,
+    ULONG InputBufferLength,
+    PVOID OutputBuffer OPTIONAL,
+    ULONG OutputBufferLength);
 
 
 /******************************************************************
@@ -3336,6 +3462,16 @@ NTSYSAPI NTSTATUS NTAPI NtSetTimerResolution(
     ULONG DesiredResolution,
     BOOLEAN SetResolution,
     PULONG CurrentResolution);
+
+
+/******************************************************************
+ * VDM API
+ *****************************************************************/
+
+NTSYSAPI NTSTATUS NTAPI NtVdmControl(
+    ULONG ControlCode,
+    PVOID ControlData);
+
 
 /******************************************************************
  * C runtime API
