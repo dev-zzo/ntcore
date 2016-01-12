@@ -649,7 +649,7 @@ typedef struct _SYSTEM_PAGEFILE_INFORMATION {
     ULONG TotalSize;
     ULONG TotalInUse;
     ULONG PeakUsage;
-    _UNICODE_STRING PageFileName;
+    UNICODE_STRING PageFileName;
 } SYSTEM_PAGEFILE_INFORMATION, *PSYSTEM_PAGEFILE_INFORMATION;
 
 /* SystemPoolTagInformation */
