@@ -294,29 +294,39 @@ NTSYSAPI NTSTATUS NTAPI NtClose(
 
 /* Current version: 5.1 */
 typedef enum _SYSTEM_INFORMATION_CLASS {
+    /* Q: SYSTEM_BASIC_INFORMATION */
     SystemBasicInformation = 0x0,
+    /* Q: SYSTEM_PROCESSOR_INFORMATION */
     SystemProcessorInformation = 0x1,
+    /* Q: SYSTEM_PERFORMANCE_INFORMATION */
     SystemPerformanceInformation = 0x2,
     SystemTimeOfDayInformation = 0x3,
     SystemPathInformation = 0x4,
+    /* Q: SYSTEM_PROCESS_INFORMATION */
     SystemProcessInformation = 0x5,
     SystemCallCountInformation = 0x6,
     SystemDeviceInformation = 0x7,
     SystemProcessorPerformanceInformation = 0x8,
+    /* Q/S: SYSTEM_FLAGS_INFORMATION */
     SystemFlagsInformation = 0x9,
     SystemCallTimeInformation = 0xA,
+    /* Q: RTL_PROCESS_MODULES */
     SystemModuleInformation = 0xB,
     SystemLocksInformation = 0xC,
     SystemStackTraceInformation = 0xD,
     SystemPagedPoolInformation = 0xE,
     SystemNonPagedPoolInformation = 0xF,
+    /* Q: SYSTEM_HANDLE_INFORMATION */
     SystemHandleInformation = 0x10,
     SystemObjectInformation = 0x11,
+    /* Q: SYSTEM_PAGEFILE_INFORMATION */
     SystemPageFileInformation = 0x12,
     SystemVdmInstemulInformation = 0x13,
     SystemVdmBopInformation = 0x14,
     SystemFileCacheInformation = 0x15,
+    /* Q: SYSTEM_POOLTAG_INFORMATION */
     SystemPoolTagInformation = 0x16,
+    /* Q: SYSTEM_INTERRUPT_INFORMATION */
     SystemInterruptInformation = 0x17,
     SystemDpcBehaviorInformation = 0x18,
     SystemFullMemoryInformation = 0x19,
@@ -329,6 +339,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS {
     SystemObsolete0 = 0x20,
     SystemExceptionInformation = 0x21,
     SystemCrashDumpStateInformation = 0x22,
+    /* SYSTEM_KERNEL_DEBUGGER_INFORMATION */
     SystemKernelDebuggerInformation = 0x23,
     SystemContextSwitchInformation = 0x24,
     SystemRegistryQuotaInformation = 0x25,
@@ -358,6 +369,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS {
     SystemProcessorPowerInformation = 0x3D,
     SystemEmulationBasicInformation = 0x3E,
     SystemEmulationProcessorInformation = 0x3F,
+    /* Q: SYSTEM_HANDLE_INFORMATION_EX */
     SystemExtendedHandleInformation = 0x40,
     SystemLostDelayedWriteInformation = 0x41,
     SystemBigPoolInformation = 0x42,
@@ -565,6 +577,26 @@ typedef struct _SYSTEM_FLAGS_INFORMATION {
     SYSTEM_GLOBAL_FLAGS Flags;
 } SYSTEM_FLAGS_INFORMATION, *PSYSTEM_FLAGS_INFORMATION;
 
+/* SystemModuleInformation */
+
+typedef struct _RTL_PROCESS_MODULE_INFORMATION {
+    PVOID Section;
+    PVOID MappedBase;
+    PVOID ImageBase;
+    ULONG ImageSize;
+    ULONG Flags;
+    USHORT LoadOrderIndex;
+    USHORT InitOrderIndex;
+    USHORT LoadCount;
+    USHORT OffsetToFileName;
+    CHAR FullPathName[256];
+} RTL_PROCESS_MODULE_INFORMATION, *PRTL_PROCESS_MODULE_INFORMATION;
+
+typedef struct _RTL_PROCESS_MODULES {
+    ULONG NumberOfModules;
+    RTL_PROCESS_MODULE_INFORMATION Modules[0];
+} RTL_PROCESS_MODULES, *PRTL_PROCESS_MODULES;
+
 /* SystemHandleInformation */
 
 typedef enum _SYSTEM_HANDLE_FLAGS {
@@ -605,10 +637,85 @@ typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX {
 typedef struct _SYSTEM_HANDLE_INFORMATION_EX {
     ULONG_PTR NumberOfHandles;
     ULONG_PTR Reserved;
-    SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handles[1];
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handles[0];
 } SYSTEM_HANDLE_INFORMATION_EX, *PSYSTEM_HANDLE_INFORMATION_EX;
 
 #endif
+
+/* SystemPageFileInformation */
+
+typedef struct _SYSTEM_PAGEFILE_INFORMATION {
+    ULONG NextEntryOffset;
+    ULONG TotalSize;
+    ULONG TotalInUse;
+    ULONG PeakUsage;
+    _UNICODE_STRING PageFileName;
+} SYSTEM_PAGEFILE_INFORMATION, *PSYSTEM_PAGEFILE_INFORMATION;
+
+/* SystemPoolTagInformation */
+
+typedef struct _SYSTEM_POOLTAG {
+    union {
+        CHAR Tag[4];
+        ULONG TagUlong;
+    };
+    ULONG PagedAllocs;
+    ULONG PagedFrees;
+    ULONG PagedUsed;
+    ULONG NonPagedAllocs;
+    ULONG NonPagedFrees;
+    ULONG NonPagedUsed;
+} SYSTEM_POOLTAG, *PSYSTEM_POOLTAG;
+
+typedef struct _SYSTEM_POOLTAG_INFORMATION {
+    ULONG Count;
+    SYSTEM_POOLTAG TagInfo[1];
+} SYSTEM_POOLTAG_INFORMATION, *PSYSTEM_POOLTAG_INFORMATION;
+
+/* SystemInterruptInformation */
+
+typedef struct _SYSTEM_INTERRUPT_INFORMATION {
+    ULONG ContextSwitches;
+    ULONG DpcCount;
+    ULONG DpcRate;
+    ULONG TimeIncrement;
+    ULONG DpcBypassCount;
+    ULONG ApcBypassCount;
+} SYSTEM_INTERRUPT_INFORMATION, *PSYSTEM_INTERRUPT_INFORMATION;
+
+/* SystemKernelDebuggerInformation */
+
+typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION {
+    char KernelDebuggerEnabled;
+    char KernelDebuggerNotPresent;
+} SYSTEM_KERNEL_DEBUGGER_INFORMATION, *PSYSTEM_KERNEL_DEBUGGER_INFORMATION;
+
+
+typedef struct _SYSTEM_THREAD_INFORMATION {
+    LARGE_INTEGER KernelTime;
+    LARGE_INTEGER UserTime;
+    LARGE_INTEGER CreateTime;
+    ULONG WaitTime;
+    PVOID StartAddress;
+    CLIENT_ID ClientId;
+    KPRIORITY Priority;
+    KPRIORITY BasePriority;
+    ULONG ContextSwitches;
+    ULONG ThreadState;
+    ULONG WaitReason;
+} SYSTEM_THREAD_INFORMATION, *PSYSTEM_THREAD_INFORMATION;
+
+typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION {
+    SYSTEM_THREAD_INFORMATION ThreadInfo;
+    PVOID StackBase;
+    PVOID StackLimit;
+    PVOID Win32StartAddress;
+    ULONG Reserved1;
+    ULONG Reserved2;
+    ULONG Reserved3;
+    ULONG Reserved4;
+} SYSTEM_EXTENDED_THREAD_INFORMATION, *PSYSTEM_EXTENDED_THREAD_INFORMATION;
+
 
 /*
  * Functions

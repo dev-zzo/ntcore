@@ -19,7 +19,7 @@
    Windows Server 2003
    Windows Server 2003 R2
 */
-#define NTAPI_LEVEL_WINXP64 NTAPI_MAKE_LEVEL(5,2,0,0)
+#define NTAPI_LEVEL_SERVER2K3 NTAPI_MAKE_LEVEL(5,2,0,0)
 
 /* Versions:
    Windows Vista
