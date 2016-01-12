@@ -362,6 +362,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS {
     SystemLoadGdiDriverInSystemSpace = 0x36,
     SystemNumaProcessorMap = 0x37,
     SystemPrefetcherInformation = 0x38,
+    /* Q: SYSTEM_PROCESS_INFORMATION */
     SystemExtendedProcessInformation = 0x39,
     SystemRecommendedSharedDataAlignment = 0x3A,
     SystemComPlusPackage = 0x3B,
@@ -502,28 +503,60 @@ typedef struct _SYSTEM_TIMEOFDAY_INFORMATION {
     ULONGLONG SleepTimeBias;
 } SYSTEM_TIMEOFDAY_INFORMATION, *PSYSTEM_TIMEOFDAY_INFORMATION;
 
-/* SystemProcessInformation*/
+/* SystemProcessInformation */
 
+/* Version: 5.2 */
+typedef struct _SYSTEM_THREAD_INFORMATION {
+    LARGE_INTEGER KernelTime;
+    LARGE_INTEGER UserTime;
+    LARGE_INTEGER CreateTime;
+    ULONG WaitTime;
+    PVOID StartAddress;
+    CLIENT_ID ClientId;
+    KPRIORITY Priority;
+    KPRIORITY BasePriority;
+    ULONG ContextSwitches;
+    ULONG ThreadState;
+    ULONG WaitReason;
+} SYSTEM_THREAD_INFORMATION, *PSYSTEM_THREAD_INFORMATION;
+
+/* SystemExtendedProcessInformation */
+
+/* Version: 5.2 */
+typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION {
+    SYSTEM_THREAD_INFORMATION ThreadInfo;
+    PVOID StackBase;
+    PVOID StackLimit;
+    PVOID Win32StartAddress;
+    ULONG Reserved1;
+    ULONG Reserved2;
+    ULONG Reserved3;
+    ULONG Reserved4;
+} SYSTEM_EXTENDED_THREAD_INFORMATION, *PSYSTEM_EXTENDED_THREAD_INFORMATION;
+
+/* SystemProcessInformation and SystemExtendedProcessInformation */
+
+/* Version: 5.2 */
 typedef struct _SYSTEM_PROCESS_INFORMATION {
     ULONG NextEntryOffset;
     ULONG NumberOfThreads;
-    LARGE_INTEGER WorkingSetPrivateSize;
-    ULONG HardFaultCount;
-    ULONG NumberOfThreadsHighWatermark;
-    ULONGLONG CycleTime;
+    LARGE_INTEGER SpareLi1;
+    LARGE_INTEGER SpareLi2;
+    LARGE_INTEGER SpareLi3;
     LARGE_INTEGER CreateTime;
     LARGE_INTEGER UserTime;
     LARGE_INTEGER KernelTime;
     UNICODE_STRING ImageName;
     KPRIORITY BasePriority;
-    ULONG UniqueProcessId;
-    ULONG InheritedFromUniqueProcessId;
+    HANDLE UniqueProcessId;
+    HANDLE InheritedFromUniqueProcessId;
     ULONG HandleCount;
     ULONG SessionId;
-    ULONG UniqueProcessKey;
+    ULONG_PTR PageDirectoryBase;
     VM_COUNTERS VmCounters;
+    ULONG PrivatePageCount;
     IO_COUNTERS IoCounters;
-    /* Array of SYSTEM_THREAD follows */
+    /* Array of SYSTEM_THREAD_INFORMATION follows */
 } SYSTEM_PROCESS_INFORMATION, *PSYSTEM_PROCESS_INFORMATION;
 
 /* SystemProcessorPerformanceInformation*/
@@ -642,6 +675,35 @@ typedef struct _SYSTEM_HANDLE_INFORMATION_EX {
 
 #endif
 
+typedef struct _SYSTEM_OBJECTTYPE_INFORMATION {
+    ULONG NextEntryOffset;
+    ULONG NumberOfObjects;
+    ULONG NumberOfHandles;
+    ULONG TypeIndex;
+    ULONG InvalidAttributes;
+    GENERIC_MAPPING GenericMapping;
+    ULONG ValidAccessMask;
+    ULONG PoolType;
+    BOOLEAN SecurityRequired;
+    BOOLEAN WaitableObject;
+    UNICODE_STRING TypeName;
+} SYSTEM_OBJECTTYPE_INFORMATION, *PSYSTEM_OBJECTTYPE_INFORMATION;
+
+typedef struct _SYSTEM_OBJECT_INFORMATION {
+    ULONG NextEntryOffset;
+    PVOID Object;
+    HANDLE CreatorUniqueProcess;
+    USHORT CreatorBackTraceIndex;
+    USHORT Flags;
+    LONG PointerCount;
+    LONG HandleCount;
+    ULONG PagedPoolCharge;
+    ULONG NonPagedPoolCharge;
+    HANDLE ExclusiveProcessId;
+    PVOID SecurityDescriptor;
+    UNICODE_STRING NameInfo;
+} SYSTEM_OBJECT_INFORMATION, *PSYSTEM_OBJECT_INFORMATION;
+
 /* SystemPageFileInformation */
 
 typedef struct _SYSTEM_PAGEFILE_INFORMATION {
@@ -689,33 +751,6 @@ typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION {
     char KernelDebuggerEnabled;
     char KernelDebuggerNotPresent;
 } SYSTEM_KERNEL_DEBUGGER_INFORMATION, *PSYSTEM_KERNEL_DEBUGGER_INFORMATION;
-
-
-typedef struct _SYSTEM_THREAD_INFORMATION {
-    LARGE_INTEGER KernelTime;
-    LARGE_INTEGER UserTime;
-    LARGE_INTEGER CreateTime;
-    ULONG WaitTime;
-    PVOID StartAddress;
-    CLIENT_ID ClientId;
-    KPRIORITY Priority;
-    KPRIORITY BasePriority;
-    ULONG ContextSwitches;
-    ULONG ThreadState;
-    ULONG WaitReason;
-} SYSTEM_THREAD_INFORMATION, *PSYSTEM_THREAD_INFORMATION;
-
-typedef struct _SYSTEM_EXTENDED_THREAD_INFORMATION {
-    SYSTEM_THREAD_INFORMATION ThreadInfo;
-    PVOID StackBase;
-    PVOID StackLimit;
-    PVOID Win32StartAddress;
-    ULONG Reserved1;
-    ULONG Reserved2;
-    ULONG Reserved3;
-    ULONG Reserved4;
-} SYSTEM_EXTENDED_THREAD_INFORMATION, *PSYSTEM_EXTENDED_THREAD_INFORMATION;
-
 
 /*
  * Functions
