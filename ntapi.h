@@ -2318,6 +2318,30 @@ typedef enum _FILE_INFORMATION_CLASS {
 #endif
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
+
+typedef struct _FILE_PIPE_INFORMATION {
+    ULONG ReadMode;
+    ULONG CompletionMode;
+} FILE_PIPE_INFORMATION, *PFILE_PIPE_INFORMATION;
+
+typedef struct _FILE_PIPE_LOCAL_INFORMATION {
+    ULONG NamedPipeType;
+    ULONG NamedPipeConfiguration;
+    ULONG MaximumInstances;
+    ULONG CurrentInstances;
+    ULONG InboundQuota;
+    ULONG ReadDataAvailable;
+    ULONG OutboundQuota;
+    ULONG WriteQuotaAvailable;
+    ULONG NamedPipeState;
+    ULONG NamedPipeEnd;
+} FILE_PIPE_LOCAL_INFORMATION, *PFILE_PIPE_LOCAL_INFORMATION;
+
+typedef struct _FILE_PIPE_REMOTE_INFORMATION {
+    LARGE_INTEGER CollectDataTime;
+    ULONG MaximumCollectionCount;
+} FILE_PIPE_REMOTE_INFORMATION, *PFILE_PIPE_REMOTE_INFORMATION;
+
 /*
  * Functions
  */
@@ -2457,7 +2481,14 @@ NTSYSAPI NTSTATUS NTAPI NtQueryInformationFile(
     HANDLE FileHandle,
     PIO_STATUS_BLOCK IoStatusBlock,
     PVOID FileInformation,
-    ULONG Length,
+    ULONG FileInformationLength,
+    FILE_INFORMATION_CLASS FileInformationClass);
+
+NTSYSAPI NTSTATUS NTAPI NtSetInformationFile(
+    HANDLE FileHandle,
+    PIO_STATUS_BLOCK IoStatusBlock,
+    PVOID FileInformation,
+    ULONG FileInformationLength,
     FILE_INFORMATION_CLASS FileInformationClass);
 
 
