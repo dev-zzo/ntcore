@@ -777,6 +777,8 @@ NTSYSAPI NTSTATUS NTAPI NtDeletePrivateNamespace(
  * Types
  */
 
+typedef struct _PEB PEB, *PPEB;
+
 typedef enum _PROCESS_INFORMATION_CLASS {
     ProcessBasicInformation = 0x0,
     ProcessQuotaLimits = 0x1,
@@ -1058,6 +1060,8 @@ NTSYSAPI NTSTATUS NTAPI NtTerminateProcess(
  * Types
  */
 
+typedef struct _TEB TEB, *PTEB;
+
 typedef struct _USER_STACK {
     PVOID FixedStackBase;
     PVOID FixedStackLimit;
@@ -1127,6 +1131,10 @@ typedef struct _THREAD_BASIC_INFORMATION {
  */
 
 #define  NtCurrentThread() ((HANDLE)-2)
+
+#if __INCLUDE_WINNT_DEFINES
+NTSYSAPI PTEB NTAPI NtCurrentTeb(void);
+#endif
 
 NTSYSAPI NTSTATUS NTAPI NtCreateThread(
     PHANDLE ThreadHandle,
