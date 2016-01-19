@@ -143,6 +143,11 @@ NTSYSAPI NTSTATUS NTAPI RtlDosPathNameToNtPathName_U_WithStatus(
     PRTL_RELATIVE_NAME_U RelativeName OPTIONAL);
 #endif
 
+/******************************************************************
+ * OS Version API
+ *****************************************************************/
 
+NTSYSAPI NTSTATUS NTAPI RtlGetVersion(
+    PRTL_OSVERSIONINFOW lpVersionInformation);
 
 #endif
