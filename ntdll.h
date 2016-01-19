@@ -63,12 +63,12 @@ typedef struct _OBJECT_ATTRIBUTES {
 } OBJECT_ATTRIBUTES, *POBJECT_ATTRIBUTES;
 
 #ifndef InitializeObjectAttributes
-#define InitializeObjectAttributes(InitializedAttributes, ObjectName, Attributes, RootDirectory, SecurityDescriptor) { \
+#define InitializeObjectAttributes(InitializedAttributes, _ObjectName, _Attributes, _RootDirectory, _SecurityDescriptor) { \
     (InitializedAttributes)->Length = sizeof( OBJECT_ATTRIBUTES ); \
-    (InitializedAttributes)->RootDirectory = RootDirectory; \
-    (InitializedAttributes)->Attributes = Attributes; \
-    (InitializedAttributes)->ObjectName = ObjectName; \
-    (InitializedAttributes)->SecurityDescriptor = SecurityDescriptor; \
+    (InitializedAttributes)->RootDirectory = _RootDirectory; \
+    (InitializedAttributes)->Attributes = _Attributes; \
+    (InitializedAttributes)->ObjectName = _ObjectName; \
+    (InitializedAttributes)->SecurityDescriptor = _SecurityDescriptor; \
     (InitializedAttributes)->SecurityQualityOfService = NULL; \
     }
 #endif
