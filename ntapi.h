@@ -18,6 +18,15 @@ typedef VOID (NTAPI *PKKERNEL_ROUTINE)(
 typedef VOID (NTAPI *PKRUNDOWN_ROUTINE)(PKAPC Apc);
 
 
+typedef struct _KDPC KDPC, *PKDPC;
+
+typedef VOID (NTAPI *PKDEFERRED_ROUTINE) (
+    PKDPC Dpc,
+    PVOID DeferredContext,
+    PVOID SystemArgument1,
+    PVOID SystemArgument2);
+
+
 /******************************************************************
  * General object API
  *****************************************************************/
