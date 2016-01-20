@@ -1,7 +1,13 @@
 #ifndef __NTDLL_H_INCLUDED
 #define __NTDLL_H_INCLUDED
 
-//#include <winternl.h>
+/* Standard WinAPI stuff */
+#include <Windows.h>
+/* Microsoft SDKs have NTSTATUS, but it conflicts somewhow with winnt.h */
+#pragma warning(disable: 4005) // macro redefinition
+#include <ntstatus.h>
+#pragma warning(default: 4005) // macro redefinition
+
 #include "ntapiver.h"
 
 #ifndef NTAPI_LEVEL
@@ -21,12 +27,6 @@
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
 #endif
 
-#ifndef STATUS_ALERTED
-#define STATUS_SUCCESS                      ((NTSTATUS)0x00000000L)
-#define STATUS_ALERTED                      ((NTSTATUS)0x00000101L)
-#define STATUS_INFO_LENGTH_MISMATCH         ((NTSTATUS)0xC0000004L)
-#define STATUS_INVALID_BUFFER_SIZE          ((NTSTATUS)0xC0000206L)
-#endif
 
 typedef LONG KPRIORITY;
 
