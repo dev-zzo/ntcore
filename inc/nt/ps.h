@@ -255,6 +255,12 @@ NTSYSAPI NTSTATUS NTAPI NtCreateUserProcess(
     PPS_ATTRIBUTE_LIST AttributeList OPTIONAL);
 #endif
 
+NTSYSAPI NTSTATUS NTAPI NtOpenProcess(
+    PHANDLE ProcessHandle,
+    ACCESS_MASK DesiredAccess,
+    POBJECT_ATTRIBUTES ObjectAttributes,
+    PCLIENT_ID ClientId OPTIONAL);
+
 NTSYSAPI NTSTATUS NTAPI NtSuspendProcess(
     HANDLE ProcessHandle);
 
@@ -572,6 +578,12 @@ NTSYSAPI NTSTATUS NTAPI NtQueryInformationJobObject(
     PVOID JobInformation,
     ULONG JobInformationLength,
     PULONG ReturnLength);
+
+NTSYSAPI NTSTATUS NTAPI NtSetInformationJobObject(
+    HANDLE JobHandle,
+    JOBOBJECTINFOCLASS JobInformationClass,
+    PVOID JobInformation,
+    ULONG JobInformationLength);
 
 #endif
 
