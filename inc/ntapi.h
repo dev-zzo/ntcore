@@ -26,17 +26,17 @@ typedef VOID (NTAPI *PKDEFERRED_ROUTINE) (
     PVOID SystemArgument1,
     PVOID SystemArgument2);
 
-#include "ntapi_ob.h"
-#include "ntapi_ps.h"
-#include "ntapi_io.h"
-#include "ntapi_ke.h"
-#include "ntapi_cm.h"
-#include "ntapi_mm.h"
-#include "ntapi_se.h"
-#include "ntapi_sys.h"
-#include "ntapi_lpc.h"
-#include "ntapi_dbg.h"
-#include "ntapi_tm.h"
+#include "nt/ob.h"
+#include "nt/ps.h"
+#include "nt/io.h"
+#include "nt/ke.h"
+#include "nt/cm.h"
+#include "nt/mm.h"
+#include "nt/se.h"
+#include "nt/sys.h"
+#include "nt/lpc.h"
+#include "nt/dbg.h"
+#include "nt/tm.h"
 
 /******************************************************************
  * Drivers API

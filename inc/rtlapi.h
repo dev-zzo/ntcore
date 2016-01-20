@@ -61,13 +61,13 @@ NTSYSAPI WCHAR NTAPI RtlDowncaseUnicodeChar(
     WCHAR SourceCharacter);
 
 NTSYSAPI VOID NTAPI RtlUpcaseUnicodeString(
-    _Inout_ PUNICODE_STRING DestinationString,
+    PUNICODE_STRING DestinationString,
     PUNICODE_STRING SourceString,
     BOOLEAN AllocateDestinationString
     );
 
 NTSYSAPI VOID NTAPI RtlDowncaseUnicodeString(
-    _Inout_ PUNICODE_STRING DestinationString,
+    PUNICODE_STRING DestinationString,
     PUNICODE_STRING SourceString,
     BOOLEAN AllocateDestinationString
     );
