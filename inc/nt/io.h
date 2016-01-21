@@ -108,11 +108,20 @@ typedef enum _FILE_INFORMATION_CLASS {
 #endif
 } FILE_INFORMATION_CLASS, *PFILE_INFORMATION_CLASS;
 
+/* FilePipeInformation */
+
+#define FILE_PIPE_BYTE_STREAM_MODE 0
+#define FILE_PIPE_MESSAGE_MODE 1
+
+#define FILE_PIPE_QUEUE_OPERATION 0
+#define FILE_PIPE_COMPLETE_OPERATION 1
 
 typedef struct _FILE_PIPE_INFORMATION {
     ULONG ReadMode;
     ULONG CompletionMode;
 } FILE_PIPE_INFORMATION, *PFILE_PIPE_INFORMATION;
+
+/* FilePipeLocalInformation */
 
 typedef struct _FILE_PIPE_LOCAL_INFORMATION {
     ULONG NamedPipeType;
@@ -126,6 +135,8 @@ typedef struct _FILE_PIPE_LOCAL_INFORMATION {
     ULONG NamedPipeState;
     ULONG NamedPipeEnd;
 } FILE_PIPE_LOCAL_INFORMATION, *PFILE_PIPE_LOCAL_INFORMATION;
+
+/* FilePipeRemoteInformation */
 
 typedef struct _FILE_PIPE_REMOTE_INFORMATION {
     LARGE_INTEGER CollectDataTime;
