@@ -90,6 +90,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS {
     /* Q: SYSTEM_HANDLE_INFORMATION_EX */
     SystemExtendedHandleInformation = 0x40,
     SystemLostDelayedWriteInformation = 0x41,
+    /* Q: SYSTEM_BIGPOOL_INFORMATION */
     SystemBigPoolInformation = 0x42,
     SystemSessionPoolTagInformation = 0x43,
     SystemSessionMappedViewInformation = 0x44,
@@ -344,7 +345,7 @@ typedef struct _RTL_PROCESS_MODULE_INFORMATION {
 
 typedef struct _RTL_PROCESS_MODULES {
     ULONG NumberOfModules;
-    RTL_PROCESS_MODULE_INFORMATION Modules[0];
+    RTL_PROCESS_MODULE_INFORMATION Modules[1];
 } RTL_PROCESS_MODULES, *PRTL_PROCESS_MODULES;
 
 /* SystemHandleInformation */
@@ -387,7 +388,7 @@ typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX {
 typedef struct _SYSTEM_HANDLE_INFORMATION_EX {
     ULONG_PTR NumberOfHandles;
     ULONG_PTR Reserved;
-    SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handles[0];
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX Handles[1];
 } SYSTEM_HANDLE_INFORMATION_EX, *PSYSTEM_HANDLE_INFORMATION_EX;
 
 #endif
@@ -468,6 +469,26 @@ typedef struct _SYSTEM_KERNEL_DEBUGGER_INFORMATION {
     char KernelDebuggerEnabled;
     char KernelDebuggerNotPresent;
 } SYSTEM_KERNEL_DEBUGGER_INFORMATION, *PSYSTEM_KERNEL_DEBUGGER_INFORMATION;
+
+/* SystemBigPoolInformation */
+
+typedef struct _SYSTEM_BIGPOOL_ENTRY {
+    union {
+        PVOID VirtualAddress;
+        ULONG_PTR NonPaged : 1;
+    };
+    SIZE_T SizeInBytes;
+    union {
+        UCHAR Tag[4];
+        ULONG TagUlong;
+    };
+} SYSTEM_BIGPOOL_ENTRY, *PSYSTEM_BIGPOOL_ENTRY;
+
+typedef struct _SYSTEM_BIGPOOL_INFORMATION {
+    ULONG Count;
+    SYSTEM_BIGPOOL_ENTRY AllocatedInfo[1];
+} SYSTEM_BIGPOOL_INFORMATION, *PSYSTEM_BIGPOOL_INFORMATION;
+
 
 /*
  * Functions

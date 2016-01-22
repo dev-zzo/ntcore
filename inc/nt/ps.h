@@ -12,6 +12,7 @@
 typedef struct _PEB PEB, *PPEB;
 
 typedef enum _PROCESS_INFORMATION_CLASS {
+    /* Q: PROCESS_BASIC_INFORMATION */
     ProcessBasicInformation = 0x0,
     ProcessQuotaLimits = 0x1,
     ProcessIoCounters = 0x2,
@@ -19,6 +20,7 @@ typedef enum _PROCESS_INFORMATION_CLASS {
     ProcessTimes = 0x4,
     ProcessBasePriority = 0x5,
     ProcessRaisePriority = 0x6,
+    /* Q: HANDLE */
     ProcessDebugPort = 0x7,
     ProcessExceptionPort = 0x8,
     ProcessAccessToken = 0x9,
@@ -38,6 +40,7 @@ typedef enum _PROCESS_INFORMATION_CLASS {
     ProcessDeviceMap = 0x17,
     ProcessSessionInformation = 0x18,
     ProcessForegroundInformation = 0x19,
+    /* Q: ULONG_PTR */
     ProcessWow64Information = 0x1A,
     ProcessImageFileName = 0x1B,
     ProcessLUIDDeviceMapsEnabled = 0x1C,
