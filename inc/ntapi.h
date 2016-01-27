@@ -39,6 +39,27 @@ typedef VOID (NTAPI *PKDEFERRED_ROUTINE) (
 #include "nt/tm.h"
 
 /******************************************************************
+ * Direct syscall API
+ *****************************************************************/
+
+/* 32-bit syscall trampoline */
+#define NTSYSCALLV(argc) \
+    __asm mov edx, 0x7FFE0300 \
+    __asm call dword ptr [edx] \
+    __asm retn (argc*4)
+
+#define NTSYSCALL(num, argc) \
+    __asm mov eax, num \
+    NTSYSCALLV(argc)
+
+/* Example usage:
+ULONG_PTR __declspec(naked) __stdcall NtUserCallOneParam(ULONG_PTR a, ULONG_PTR b)
+{
+    NTSYSCALL(0x114E, 2);
+}
+*/
+
+/******************************************************************
  * Drivers API
  *****************************************************************/
 
