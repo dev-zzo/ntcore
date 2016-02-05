@@ -74,7 +74,7 @@ typedef struct _OBJECT_TYPE_INFORMATION {
 typedef struct _OBJECT_TYPES_INFORMATION {
     ULONG NumberOfTypes;
     /* Not in original definition, added for convenience */
-    OBJECT_TYPE_INFORMATION Types[0];
+    OBJECT_TYPE_INFORMATION Types[1];
 } OBJECT_TYPES_INFORMATION, *POBJECT_TYPES_INFORMATION;
 
 /* ObjectHandleFlagInformation */
