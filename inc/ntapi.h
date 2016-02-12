@@ -170,4 +170,16 @@ int vsprintf(
    const char *format,
    va_list argptr);
 
+int _vsnprintf(
+    char *buffer,
+    size_t count,
+    const char *format,
+    va_list argptr);
+
+int _vsnwprintf(
+    wchar_t *buffer,
+    size_t count,
+    const wchar_t *format,
+    va_list argptr);
+
 #endif // __NTDLL_H_INCLUDED
