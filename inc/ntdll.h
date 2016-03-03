@@ -132,4 +132,8 @@ typedef struct _VM_COUNTERS_EX {
 #include "rtlapi.h"
 #include "ntapi.h"
 
+NTSYSAPI VOID NTAPI DbgBreakPoint(VOID);
+
+NTSYSAPI VOID NTAPI DbgUserBreakPoint(VOID);
+
 #endif // __NTDLL_H_INCLUDED
