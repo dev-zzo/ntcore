@@ -23,6 +23,7 @@ typedef enum _PROCESS_INFORMATION_CLASS {
     /* Q: HANDLE */
     ProcessDebugPort = 0x7,
     ProcessExceptionPort = 0x8,
+    /* S: PROCESS_ACCESS_TOKEN */
     ProcessAccessToken = 0x9,
     ProcessLdtInformation = 0xA,
     ProcessLdtSize = 0xB,
@@ -92,6 +93,13 @@ typedef struct _PROCESS_BASIC_INFORMATION {
     ULONG_PTR UniqueProcessId;
     ULONG_PTR InheritedFromUniqueProcessId;
 } PROCESS_BASIC_INFORMATION,*PPROCESS_BASIC_INFORMATION;
+
+/* ProcessAccessToken */
+
+typedef struct _PROCESS_ACCESS_TOKEN {
+    HANDLE Token;
+    HANDLE Thread;
+} PROCESS_ACCESS_TOKEN, *PPROCESS_ACCESS_TOKEN;
 
 /* ProcessDeviceMap */
 
