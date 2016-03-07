@@ -150,4 +150,12 @@ NTSYSAPI NTSTATUS NTAPI RtlDosPathNameToNtPathName_U_WithStatus(
 NTSYSAPI NTSTATUS NTAPI RtlGetVersion(
     PRTL_OSVERSIONINFOW lpVersionInformation);
 
+/******************************************************************
+ * Security API
+ *****************************************************************/
+
+NTSYSAPI ULONG NTAPI RtlLengthRequiredSid(
+    ULONG SubAuthorityCount
+);
+
 #endif
