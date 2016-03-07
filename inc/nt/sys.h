@@ -77,6 +77,7 @@ typedef enum _SYSTEM_INFORMATION_CLASS {
     SystemVerifierThunkExtend = 0x34,
     SystemSessionProcessInformation = 0x35,
     SystemLoadGdiDriverInSystemSpace = 0x36,
+    /* Q: SYSTEM_NUMA_INFORMATION */
     SystemNumaProcessorMap = 0x37,
     SystemPrefetcherInformation = 0x38,
     /* Q: SYSTEM_PROCESS_INFORMATION */
@@ -276,6 +277,21 @@ typedef struct _SYSTEM_PROCESS_INFORMATION {
     IO_COUNTERS IoCounters;
     /* Array of SYSTEM_THREAD_INFORMATION follows */
 } SYSTEM_PROCESS_INFORMATION, *PSYSTEM_PROCESS_INFORMATION;
+
+/* SystemNumaProcessorMap */
+
+#ifndef MAXIMUM_NUMA_NODES
+#define MAXIMUM_NUMA_NODES 16
+#endif
+
+typedef struct _SYSTEM_NUMA_INFORMATION {
+    ULONG HighestNodeNumber;
+    ULONG Reserved;
+    union {
+        ULONGLONG ActiveProcessorsAffinityMask[MAXIMUM_NUMA_NODES];
+        ULONGLONG AvailableMemory[MAXIMUM_NUMA_NODES];
+    };
+} SYSTEM_NUMA_INFORMATION, *PSYSTEM_NUMA_INFORMATION;
 
 /* SystemProcessorPerformanceInformation*/
 
